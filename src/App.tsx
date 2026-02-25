@@ -8,6 +8,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import Dashboard from "@/pages/Dashboard";
 import NovoProcesso from "@/pages/NovoProcesso";
 import LotesGerados from "@/pages/LotesGerados";
+import RevisaoLotes from "@/pages/RevisaoLotes";
 import Documentos from "@/pages/Documentos";
 import Relatorios from "@/pages/Relatorios";
 import ConfiguracaoClassificacaoCsv from "@/pages/ConfiguracaoClassificacaoCsv";
@@ -36,6 +37,7 @@ const ProtectedRoutes = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/novo-processo" element={<NovoProcesso />} />
         <Route path="/lotes" element={<LotesGerados />} />
+        <Route path="/revisao-lotes" element={<RevisaoLotes />} />
         <Route path="/documentos" element={<Documentos />} />
         <Route path="/relatorios" element={<Relatorios />} />
         <Route path="/configuracoes/classificacao-csv" element={<ConfiguracaoClassificacaoCsv />} />

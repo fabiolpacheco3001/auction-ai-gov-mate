@@ -214,7 +214,7 @@ const NovoProcesso = () => {
             Arrecadação estimada: <strong className="text-success">R$ 20.655,00</strong>
           </p>
           <Button
-            onClick={() => navigate("/lotes")}
+            onClick={() => navigate("/revisao-lotes", { state: { classificationResult, fileName: file?.name } })}
             className="bg-accent text-accent-foreground hover:bg-accent/90 font-medium px-6"
           >
             Revisar Lotes Gerados <ArrowRight className="w-4 h-4 ml-2" />
