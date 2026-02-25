@@ -187,7 +187,7 @@ const NovoProcesso = () => {
                 <div>
                   <p className="text-xs font-semibold text-destructive mb-1">Erros ({classificationResult.errosEncontrados.length})</p>
                   <ul className="text-xs text-muted-foreground space-y-0.5">
-                    {classificationResult.errosEncontrados.slice(0, 5).map((e, i) => <li key={i}>• {e}</li>)}
+                    {classificationResult.errosEncontrados.slice(0, 5).map((e, i) => <li key={i}>• {typeof e === 'string' ? e : JSON.stringify(e)}</li>)}
                     {classificationResult.errosEncontrados.length > 5 && <li className="text-muted-foreground/60">...e mais {classificationResult.errosEncontrados.length - 5}</li>}
                   </ul>
                 </div>
@@ -196,7 +196,7 @@ const NovoProcesso = () => {
                 <div>
                   <p className="text-xs font-semibold text-warning mb-1">Avisos ({classificationResult.avisos.length})</p>
                   <ul className="text-xs text-muted-foreground space-y-0.5">
-                    {classificationResult.avisos.slice(0, 5).map((a, i) => <li key={i}>• {a}</li>)}
+                    {classificationResult.avisos.slice(0, 5).map((a, i) => <li key={i}>• {typeof a === 'string' ? a : JSON.stringify(a)}</li>)}
                     {classificationResult.avisos.length > 5 && <li className="text-muted-foreground/60">...e mais {classificationResult.avisos.length - 5}</li>}
                   </ul>
                 </div>
@@ -205,7 +205,7 @@ const NovoProcesso = () => {
                 <div>
                   <p className="text-xs font-semibold text-info mb-1">Sugestões ({classificationResult.sugestoes.length})</p>
                   <ul className="text-xs text-muted-foreground space-y-0.5">
-                    {classificationResult.sugestoes.slice(0, 3).map((s, i) => <li key={i}>• {s}</li>)}
+                    {classificationResult.sugestoes.slice(0, 3).map((s, i) => <li key={i}>• {typeof s === 'string' ? s : JSON.stringify(s)}</li>)}
                   </ul>
                 </div>
               )}
