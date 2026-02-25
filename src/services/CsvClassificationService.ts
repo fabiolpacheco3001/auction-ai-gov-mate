@@ -10,10 +10,13 @@ export interface LoteItem {
   municipio: string;
   quantidade: number;
   valor: number;
+  valorMedioLeilao: number | null;
 }
 
 export interface LoteClassificado {
   categoria: string;
+  municipio: string;
+  localizacao: string;
   quantidadeItens: number;
   valorTotal: number;
   itens: LoteItem[];
