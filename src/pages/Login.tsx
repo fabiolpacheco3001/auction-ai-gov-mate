@@ -61,19 +61,17 @@ const Login = () => {
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>}
 
-          <Button type="submit" disabled={loading} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+          >
             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <LogIn className="w-4 h-4 mr-2" />}
             Entrar
           </Button>
         </form>
-
-        <p className="text-center text-xs text-muted-foreground">
-          Login: <strong>admin</strong> · Senha: <strong>softhack01</strong>
-        </p>
       </div>
     </div>
   );
