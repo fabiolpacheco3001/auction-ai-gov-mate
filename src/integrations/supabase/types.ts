@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_tokens: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          last_used_at: string | null
+          nome: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          nome?: string
+          token?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          nome?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bens: {
         Row: {
           categoria: string

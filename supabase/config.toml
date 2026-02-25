@@ -1,1 +1,4 @@
 project_id = "iickfjvacjpfdhcuvjwt"
+
+[functions.intake-items]
+verify_jwt = false
