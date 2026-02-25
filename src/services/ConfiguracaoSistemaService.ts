@@ -33,6 +33,7 @@ export const ConfiguracaoSistemaService = {
 
   carregar(): ConfiguracaoSistema {
     const raw = localStorage.getItem(STORAGE_KEY);
+    console.log(raw);
     if (raw) {
       try {
         return JSON.parse(raw);
@@ -40,6 +41,7 @@ export const ConfiguracaoSistemaService = {
         // fall through
       }
     }
+    console.log(PROMPT_PADRAO);
     return {
       id: "config-1",
       promptClassificacaoCsv: PROMPT_PADRAO,
