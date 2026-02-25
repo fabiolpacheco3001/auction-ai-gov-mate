@@ -15,7 +15,8 @@ const PROMPT_PADRAO = `Classifique os bens patrimoniais do CSV seguindo estas re
 4. TOMBAMENTO: Verifique se o número de tombamento segue o padrão esperado (ex: VEI-2010-001).
 5. INCONSISTÊNCIAS: Identifique registros com campos obrigatórios vazios (descrição, categoria, localização).
 6. DUPLICATAS: Sinalize possíveis itens duplicados com base no número de tombamento.
-7. Gere os lotes agrupados por Municipio e Categoria.`;
+7. AGRUPAMENTO DE LOTES: Agrupe os itens por categoria + município + localização. Cada combinação única deve gerar um lote distinto.
+8. VALOR MÉDIO DE LEILÃO: Para cada item, estime o valor médio de venda em leilões públicos usando os sites de precificação configurados. Use aproximação inteligente baseada em similaridade quando não houver correspondência exata.`;
 
 export const ConfiguracaoSistemaService = {
   getPromptPadrao: () => PROMPT_PADRAO,
