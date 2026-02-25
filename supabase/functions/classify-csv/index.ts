@@ -25,14 +25,21 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: sitesPrecificacao } = await supabase.from("sites_precificacao").select("url, descricao");
+    const { data: sitesPrecificacao } = await supabase
+      .from("sites_precificacao")
+      .select("url, descricao")
+      .order("created_at", { ascending: true });
 
-    const sitesInfo = (sitesPrecificacao ?? [])
-      .map((s: any) => `- ${s.url}${s.descricao ? ` (${s.descricao})` : ""}`)
+    const sites = sitesPrecificacao ?? [];
+
+    const sitesInfo = sites
+      .map((s: any, i: number) => `- Site ${i + 1}: ${s.url}${s.descricao ? ` (${s.descricao})` : ""}`)
       .join("\n");
 
+    const sitesJson = JSON.stringify(sites, null, 2);
+
     console.log("Total de registros CSV:", dadosCsv?.length);
-    console.log("Sites de precificação encontrados:", sitesPrecificacao?.length ?? 0);
+    console.log("Sites de precificação encontrados:", sites.length);
 
     const userMessage = `PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO também conhecido como promptConfigurado (REGRA DE PRIORIDADE MÁXIMA):
 ${promptConfigurado}
@@ -65,6 +72,9 @@ Somente utilize regras padrão se o promptConfigurado NÃO definir nenhuma regra
 SITES DE PRECIFICAÇÃO PARA CONSULTA DE VALORES:
 ${sitesInfo || "Nenhum site configurado."}
 
+LISTA ESTRUTURADA DOS SITES:
+${sitesJson}
+
 ---
 
 DADOS DO CSV:
@@ -89,12 +99,15 @@ Para cada item, você deve:
 
 - Usar a descrição, categoria, estado e demais dados disponíveis do item
 - Considerar os sites de precificação fornecidos como referência de mercado
-- Estimar o valor médio de venda em leilões de itens equivalentes ou similares
+- Estimar o valor médio de venda em leilões para CADA SITE individualmente
+- Retornar os valores estimados POR SITE no campo "precificacao.valorMedioPorSite"
+- Cada entrada em valorMedioPorSite deve conter a URL do site, o valorMedio estimado e a confiança (0 a 1)
+- Retornar também "precificacao.valorMedioGeral" como média dos valores dos sites
+- Retornar "precificacao.quantidadeSites" com o número de sites consultados
 - Considerar valores realistas de mercado
 - Ignorar valores irreais ou fora do padrão
 - Usar similaridade quando necessário
-- Retornar no campo "valorMedioLeilao"
-- Retornar null se não houver confiança suficiente
+- Retornar null para valorMedio se não houver confiança suficiente
 
 ---
 
@@ -135,7 +148,14 @@ Retorne APENAS um JSON válido no seguinte formato:
           "municipio": string,
           "quantidade": number,
           "valor": number,
-          "valorMedioLeilao": number | null
+          "valorMedioLeilao": number | null,
+          "precificacao": {
+            "valorMedioGeral": number | null,
+            "valorMedioPorSite": [
+              { "url": string, "valorMedio": number | null, "confianca": number }
+            ],
+            "quantidadeSites": number
+          }
         }
       ]
     }
@@ -158,6 +178,7 @@ INSTRUÇÕES OBRIGATÓRIAS FINAIS:
 - Cada lote deve conter apenas os itens definidos pelas regras do promptConfigurado
 - Calcule quantidadeItens corretamente
 - Calcule valorTotal corretamente
+- OBRIGATÓRIO: cada item DEVE conter o campo "precificacao" com valorMedioPorSite preenchido para cada site configurado
 - Retorne somente JSON válido
 - Não retorne explicações
 - Não retorne texto fora do JSON`;
@@ -176,7 +197,7 @@ INSTRUÇÕES OBRIGATÓRIAS FINAIS:
           {
             role: "system",
             content:
-              "Você é um especialista em classificação e agrupamento de bens patrimoniais, avaliação de leilões públicos, classificação patrimonial e precificação de bens usados.\n\nSua tarefa é:\n1. Classificar os itens conforme o prompt do usuário\n2. Agrupar os itens por categoria + municipio + localizacao (cada combinação única = um lote)\n3. Para cada item, estimar o valor médio de leilão consultando os sites de precificação fornecidos\n4. Usar aproximação inteligente baseada em similaridade quando não houver correspondência exata\n5. Retornar os dados estruturados em formato de lotes com o campo valorMedioLeilao\n\nResponda APENAS com JSON válido.",
+              "Você é um especialista em classificação e agrupamento de bens patrimoniais, avaliação de leilões públicos, classificação patrimonial e precificação de bens usados.\n\nSua tarefa é:\n1. Classificar os itens conforme o prompt do usuário\n2. Agrupar os itens conforme definido no prompt do usuário\n3. Para cada item, estimar o valor médio de leilão para CADA site de precificação fornecido individualmente\n4. Retornar no campo precificacao.valorMedioPorSite um array com um objeto para cada site (url, valorMedio, confianca)\n5. Usar aproximação inteligente baseada em similaridade quando não houver correspondência exata\n6. Retornar os dados estruturados em formato de lotes\n\nResponda APENAS com JSON válido.",
           },
           { role: "user", content: userMessage },
         ],
