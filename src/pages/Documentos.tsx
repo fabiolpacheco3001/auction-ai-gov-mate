@@ -3,6 +3,14 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { fetchLotesComBens, downloadPdf, downloadXlsx } from "@/services/DocumentoLoteService";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const statusStyles: Record<string, string> = {
   rascunho: "bg-warning/10 text-warning",
@@ -17,6 +25,31 @@ const Documentos = () => {
       return data ?? [];
     },
   });
+
+  const handleDownload = async (doc: any, format: "pdf" | "xlsx") => {
+    if (!doc.processo_id) {
+      toast.error("Documento sem processo associado.");
+      return;
+    }
+
+    try {
+      const lotes = await fetchLotesComBens(doc.processo_id);
+      if (!lotes || lotes.length === 0) {
+        toast.error("Nenhum lote encontrado para este processo.");
+        return;
+      }
+
+      if (format === "pdf") {
+        downloadPdf(doc.processo_titulo, lotes);
+      } else {
+        downloadXlsx(doc.processo_titulo, lotes);
+      }
+      toast.success(`Documento ${format.toUpperCase()} gerado com sucesso!`);
+    } catch (err) {
+      console.error("Erro ao gerar documento:", err);
+      toast.error("Erro ao gerar documento.");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -40,6 +73,13 @@ const Documentos = () => {
             </tr>
           </thead>
           <tbody>
+            {documentos.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">
+                  Nenhum documento gerado ainda.
+                </td>
+              </tr>
+            )}
             {documentos.map((doc) => (
               <tr key={doc.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                 <td className="px-5 py-3.5">
@@ -55,9 +95,26 @@ const Documentos = () => {
                 <td className="px-5 py-3.5 text-center"><span className="text-xs font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground">{doc.tipo}</span></td>
                 <td className="px-5 py-3.5 text-center"><span className={cn("text-xs font-medium px-2.5 py-1 rounded-full", statusStyles[doc.status] ?? "")}>{doc.status === "finalizado" ? "Finalizado" : "Rascunho"}</span></td>
                 <td className="px-5 py-3.5 text-center">
-                  <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Baixar">
-                    {doc.status === "finalizado" ? <FileDown className="w-4 h-4" /> : <FileCheck className="w-4 h-4" />}
-                  </button>
+                  {doc.status === "finalizado" && doc.processo_id ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="gap-1.5 h-8">
+                          <FileDown className="w-4 h-4" />
+                          Baixar
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleDownload(doc, "pdf")}>
+                          📄 Baixar PDF
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDownload(doc, "xlsx")}>
+                          📊 Baixar XLSX
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
                 </td>
               </tr>
             ))}

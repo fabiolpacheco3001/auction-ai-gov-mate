@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { gerarDocumentoLotes, gerarConteudoDocumento, downloadDocumentoTxt } from "@/services/DocumentoLoteService";
+import { gerarDocumentoLotes, downloadPdf, fetchLotesComBens } from "@/services/DocumentoLoteService";
 import {
   Collapsible,
   CollapsibleContent,
@@ -195,10 +195,9 @@ const LotesGerados = () => {
     try {
       const result = await gerarDocumentoLotes(processoId, group.processo.titulo);
       if (result) {
-        const content = gerarConteudoDocumento(group.processo.titulo, result.lotes);
-        downloadDocumentoTxt(content, `composicao-lotes-${group.processo.titulo.replace(/\s+/g, "-").toLowerCase()}.txt`);
+        downloadPdf(group.processo.titulo, result.lotes);
         queryClient.invalidateQueries({ queryKey: ["documentos"] });
-        toast.success("Documento de composição de lotes gerado com sucesso!");
+        toast.success("Documento PDF de composição de lotes gerado com sucesso!");
       }
     } catch (err) {
       console.error("Erro ao gerar documento:", err);
