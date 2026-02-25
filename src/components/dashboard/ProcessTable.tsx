@@ -1,7 +1,16 @@
-import { mockProcessos, statusLabels } from "@/data/mockData";
 import { cn } from "@/lib/utils";
 import { Eye, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+
+const statusLabels: Record<string, string> = {
+  processando: "Processando",
+  revisao: "Em Revisão",
+  aprovado: "Aprovado",
+  em_leilao: "Em Leilão",
+  finalizado: "Finalizado",
+};
 
 const statusColors: Record<string, string> = {
   processando: "bg-info/10 text-info",
@@ -13,6 +22,17 @@ const statusColors: Record<string, string> = {
 
 const ProcessTable = () => {
   const navigate = useNavigate();
+
+  const { data: processos } = useQuery({
+    queryKey: ["processos"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("processos")
+        .select("*")
+        .order("data_upload", { ascending: false });
+      return data ?? [];
+    },
+  });
 
   return (
     <div className="bg-card rounded-xl border border-border shadow-card">
@@ -36,21 +56,21 @@ const ProcessTable = () => {
             </tr>
           </thead>
           <tbody>
-            {mockProcessos.map((p) => (
+            {(processos ?? []).map((p) => (
               <tr key={p.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                 <td className="px-5 py-3.5">
                   <p className="text-sm font-medium text-foreground">{p.titulo}</p>
-                  <p className="text-xs text-muted-foreground">{p.dataUpload}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(p.data_upload).toLocaleDateString("pt-BR")}</p>
                 </td>
                 <td className="px-5 py-3.5 text-sm text-muted-foreground">{p.orgao}</td>
-                <td className="px-5 py-3.5 text-sm text-center text-foreground">{p.totalBens}</td>
-                <td className="px-5 py-3.5 text-sm text-center text-foreground">{p.totalLotes}</td>
+                <td className="px-5 py-3.5 text-sm text-center text-foreground">{p.total_bens}</td>
+                <td className="px-5 py-3.5 text-sm text-center text-foreground">{p.total_lotes}</td>
                 <td className="px-5 py-3.5 text-sm text-right font-medium text-foreground">
-                  {p.arrecadacaoEstimada.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  {Number(p.arrecadacao_estimada).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </td>
                 <td className="px-5 py-3.5 text-center">
-                  <span className={cn("text-xs font-medium px-2.5 py-1 rounded-full", statusColors[p.status])}>
-                    {statusLabels[p.status]}
+                  <span className={cn("text-xs font-medium px-2.5 py-1 rounded-full", statusColors[p.status] ?? "")}>
+                    {statusLabels[p.status] ?? p.status}
                   </span>
                 </td>
                 <td className="px-5 py-3.5 text-center">

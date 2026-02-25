@@ -55,7 +55,7 @@ const NovoProcesso = () => {
     const isCsv = f.name.toLowerCase().endsWith(".csv");
     if (isCsv) {
       try {
-        const config = ConfiguracaoSistemaService.carregar();
+        const config = await ConfiguracaoSistemaService.carregar();
         const result = await CsvClassificationService.classificarCsv(f, config.promptClassificacaoCsv);
         setClassificationResult(result);
       } catch {
