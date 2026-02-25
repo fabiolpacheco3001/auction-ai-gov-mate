@@ -1,6 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
-interface Bem {
+export interface Bem {
   id: string;
   descricao: string;
   tombamento: string;
@@ -12,7 +15,7 @@ interface Bem {
   categoria: string;
 }
 
-interface LoteComBens {
+export interface LoteComBens {
   id: string;
   numero: number;
   categoria: string;
@@ -21,8 +24,7 @@ interface LoteComBens {
   bens: Bem[];
 }
 
-export async function gerarDocumentoLotes(processoId: string, processoTitulo: string) {
-  // Fetch lotes do processo
+export async function fetchLotesComBens(processoId: string) {
   const { data: lotesData } = await supabase
     .from("lotes")
     .select("*")
@@ -31,7 +33,6 @@ export async function gerarDocumentoLotes(processoId: string, processoTitulo: st
 
   if (!lotesData || lotesData.length === 0) return null;
 
-  // Fetch bens
   const loteIds = lotesData.map((l) => l.id);
   const { data: lotesBens } = await supabase
     .from("lotes_bens")
@@ -62,7 +63,13 @@ export async function gerarDocumentoLotes(processoId: string, processoTitulo: st
     bens: (bemIdsByLote[l.id] ?? []).map((id) => bensMap[id]).filter(Boolean),
   }));
 
-  // Insert document record
+  return lotes;
+}
+
+export async function gerarDocumentoLotes(processoId: string, processoTitulo: string) {
+  const lotes = await fetchLotesComBens(processoId);
+  if (!lotes) return null;
+
   const { data: doc, error } = await supabase.from("documentos").insert({
     nome: `Composição de Lotes - ${processoTitulo}`,
     processo_id: processoId,
@@ -72,7 +79,6 @@ export async function gerarDocumentoLotes(processoId: string, processoTitulo: st
   }).select().single();
 
   if (error) throw error;
-
   return { doc, lotes };
 }
 
@@ -83,8 +89,114 @@ const estadoLabels: Record<string, string> = {
   inservivel: "Inservível",
 };
 
+const currency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+// ───── PDF Generation ─────
+
+export function gerarPdf(processoTitulo: string, lotes: LoteComBens[]): jsPDF {
+  const doc = new jsPDF();
+  const totalAprovado = lotes.reduce((s, l) => s + (l.preco_aprovado ?? l.preco_sugerido), 0);
+
+  // Header
+  doc.setFontSize(16);
+  doc.text("DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO", 105, 20, { align: "center" });
+  doc.setFontSize(10);
+  doc.text(`Processo: ${processoTitulo}`, 14, 32);
+  doc.text(`Data de Geração: ${new Date().toLocaleDateString("pt-BR")}`, 14, 38);
+  doc.text(`Total de Lotes: ${lotes.length}`, 14, 44);
+  doc.text(`Valor Total Aprovado: ${currency(totalAprovado)}`, 14, 50);
+
+  let startY = 58;
+
+  for (const lote of lotes) {
+    // Check if we need a new page
+    if (startY > 250) {
+      doc.addPage();
+      startY = 20;
+    }
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Lote ${String(lote.numero).padStart(3, "0")} — ${lote.categoria}`, 14, startY);
+    startY += 6;
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Valor Aprovado: ${currency(lote.preco_aprovado ?? lote.preco_sugerido)}  |  Itens: ${lote.bens.length}`, 14, startY);
+    startY += 4;
+
+    const locations = [...new Set(lote.bens.map((b) => `${b.localizacao}${b.municipio ? ` - ${b.municipio}` : ""}`).filter(Boolean))];
+    if (locations.length > 0) {
+      doc.text(`Local(is) de Retirada: ${locations.join("; ")}`, 14, startY);
+      startY += 5;
+    }
+
+    autoTable(doc, {
+      startY,
+      head: [["Tombamento", "Descrição", "Qtd", "Estado", "Valor Est."]],
+      body: lote.bens.map((item) => [
+        item.tombamento || "—",
+        item.descricao || "—",
+        String(item.quantidade),
+        estadoLabels[item.estado] ?? item.estado,
+        currency(item.valor_estimado),
+      ]),
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [41, 128, 185] },
+      margin: { left: 14, right: 14 },
+    });
+
+    startY = (doc as any).lastAutoTable.finalY + 10;
+  }
+
+  return doc;
+}
+
+export function downloadPdf(processoTitulo: string, lotes: LoteComBens[]) {
+  const doc = gerarPdf(processoTitulo, lotes);
+  doc.save(`composicao-lotes-${processoTitulo.replace(/\s+/g, "-").toLowerCase()}.pdf`);
+}
+
+// ───── XLSX Generation ─────
+
+export function downloadXlsx(processoTitulo: string, lotes: LoteComBens[]) {
+  const wb = XLSX.utils.book_new();
+
+  // Summary sheet
+  const summaryData = lotes.map((l) => ({
+    "Lote": l.numero,
+    "Categoria": l.categoria,
+    "Qtd Itens": l.bens.length,
+    "Preço Sugerido": l.preco_sugerido,
+    "Preço Aprovado": l.preco_aprovado ?? l.preco_sugerido,
+    "Locais de Retirada": [...new Set(l.bens.map((b) => `${b.localizacao}${b.municipio ? ` - ${b.municipio}` : ""}`).filter(Boolean))].join("; "),
+  }));
+  const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+  XLSX.utils.book_append_sheet(wb, wsSummary, "Resumo");
+
+  // Detail sheet with all items
+  const detailData = lotes.flatMap((l) =>
+    l.bens.map((item) => ({
+      "Lote": l.numero,
+      "Categoria": l.categoria,
+      "Tombamento": item.tombamento || "—",
+      "Descrição": item.descricao,
+      "Quantidade": item.quantidade,
+      "Estado": estadoLabels[item.estado] ?? item.estado,
+      "Localização": item.localizacao,
+      "Município": item.municipio,
+      "Valor Estimado": item.valor_estimado,
+    }))
+  );
+  const wsDetail = XLSX.utils.json_to_sheet(detailData);
+  XLSX.utils.book_append_sheet(wb, wsDetail, "Itens");
+
+  XLSX.writeFile(wb, `composicao-lotes-${processoTitulo.replace(/\s+/g, "-").toLowerCase()}.xlsx`);
+}
+
+// ───── Legacy TXT (kept for backwards compat) ─────
+
 export function gerarConteudoDocumento(processoTitulo: string, lotes: LoteComBens[]): string {
-  const currency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const lines: string[] = [];
 
   lines.push("═══════════════════════════════════════════════════════════════");
@@ -104,13 +216,10 @@ export function gerarConteudoDocumento(processoTitulo: string, lotes: LoteComBen
     lines.push(`  Valor Aprovado: ${currency(lote.preco_aprovado ?? lote.preco_sugerido)}`);
     lines.push(`  Total de Itens: ${lote.bens.length}`);
 
-    // Locations
     const locations = [...new Set(lote.bens.map((b) => `${b.localizacao}${b.municipio ? ` - ${b.municipio}` : ""}`).filter(Boolean))];
     if (locations.length > 0) {
       lines.push(`  Local(is) de Retirada:`);
-      for (const loc of locations) {
-        lines.push(`    • ${loc}`);
-      }
+      for (const loc of locations) lines.push(`    • ${loc}`);
     }
 
     lines.push("");
