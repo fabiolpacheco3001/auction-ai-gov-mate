@@ -91,28 +91,70 @@ const estadoLabels: Record<string, string> = {
 
 const currency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const APP_NAME = "Auction AI Gov Mate";
+const dataGeracao = () => new Date().toLocaleDateString("pt-BR");
+const footerText = () => `Documento gerado por ${APP_NAME} em ${dataGeracao()}`;
+
 // ───── PDF Generation ─────
+
+function addPdfHeader(doc: jsPDF) {
+  // Header background
+  doc.setFillColor(20, 60, 100);
+  doc.rect(0, 0, 210, 28, "F");
+
+  // App name (logo text)
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(255, 255, 255);
+  doc.text(APP_NAME, 14, 12);
+
+  // Title
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text("DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO", 14, 22);
+
+  // Reset color
+  doc.setTextColor(0, 0, 0);
+}
+
+function addPdfFooter(doc: jsPDF) {
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    const pageHeight = doc.internal.pageSize.getHeight();
+    // Footer line
+    doc.setDrawColor(20, 60, 100);
+    doc.setLineWidth(0.5);
+    doc.line(14, pageHeight - 16, 196, pageHeight - 16);
+    // Footer text
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text(footerText(), 14, pageHeight - 10);
+    doc.text(`Página ${i} de ${pageCount}`, 196, pageHeight - 10, { align: "right" });
+    doc.setTextColor(0, 0, 0);
+  }
+}
 
 export function gerarPdf(processoTitulo: string, lotes: LoteComBens[]): jsPDF {
   const doc = new jsPDF();
   const totalAprovado = lotes.reduce((s, l) => s + (l.preco_aprovado ?? l.preco_sugerido), 0);
 
-  // Header
-  doc.setFontSize(16);
-  doc.text("DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO", 105, 20, { align: "center" });
-  doc.setFontSize(10);
-  doc.text(`Processo: ${processoTitulo}`, 14, 32);
-  doc.text(`Data de Geração: ${new Date().toLocaleDateString("pt-BR")}`, 14, 38);
-  doc.text(`Total de Lotes: ${lotes.length}`, 14, 44);
-  doc.text(`Valor Total Aprovado: ${currency(totalAprovado)}`, 14, 50);
+  addPdfHeader(doc);
 
-  let startY = 58;
+  // Process info below header
+  doc.setFontSize(10);
+  doc.text(`Processo: ${processoTitulo}`, 14, 36);
+  doc.text(`Data de Geração: ${dataGeracao()}`, 14, 42);
+  doc.text(`Total de Lotes: ${lotes.length}`, 14, 48);
+  doc.text(`Valor Total Aprovado: ${currency(totalAprovado)}`, 14, 54);
+
+  let startY = 62;
 
   for (const lote of lotes) {
-    // Check if we need a new page
-    if (startY > 250) {
+    if (startY > 240) {
       doc.addPage();
-      startY = 20;
+      addPdfHeader(doc);
+      startY = 36;
     }
 
     doc.setFontSize(12);
@@ -143,12 +185,13 @@ export function gerarPdf(processoTitulo: string, lotes: LoteComBens[]): jsPDF {
       ]),
       styles: { fontSize: 8 },
       headStyles: { fillColor: [41, 128, 185] },
-      margin: { left: 14, right: 14 },
+      margin: { left: 14, right: 14, bottom: 24 },
     });
 
     startY = (doc as any).lastAutoTable.finalY + 10;
   }
 
+  addPdfFooter(doc);
   return doc;
 }
 
@@ -185,16 +228,29 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
     right: { style: "thin" },
   };
 
-  // ── Document title
-  const titleRow = ws.addRow(["DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO"]);
-  titleRow.getCell(1).font = titleFont;
-  ws.mergeCells(titleRow.number, 1, titleRow.number, 5);
+  // ── Header with app name
+  const headerBgFill: ExcelJS.FillPattern = { type: "pattern", pattern: "solid", fgColor: { argb: "FF143C64" } };
+  const headerWhiteFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: "FFFFFFFF" }, size: 14 };
+  const subHeaderFont: Partial<ExcelJS.Font> = { color: { argb: "FFFFFFFF" }, size: 10 };
+
+  const appRow = ws.addRow([APP_NAME]);
+  appRow.getCell(1).font = headerWhiteFont;
+  appRow.getCell(1).fill = headerBgFill;
+  ws.mergeCells(appRow.number, 1, appRow.number, 5);
+  for (let c = 2; c <= 5; c++) appRow.getCell(c).fill = headerBgFill;
+
+  const docTitleRow = ws.addRow(["DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO"]);
+  docTitleRow.getCell(1).font = subHeaderFont;
+  docTitleRow.getCell(1).fill = headerBgFill;
+  ws.mergeCells(docTitleRow.number, 1, docTitleRow.number, 5);
+  for (let c = 2; c <= 5; c++) docTitleRow.getCell(c).fill = headerBgFill;
+
   ws.addRow([]);
 
   // ── Header info
   const infoRows = [
     ["Processo:", processoTitulo],
-    ["Data de Geração:", new Date().toLocaleDateString("pt-BR")],
+    ["Data de Geração:", dataGeracao()],
     ["Total de Lotes:", String(lotes.length)],
     ["Valor Total Aprovado:", currency(totalAprovado)],
   ];
@@ -206,14 +262,12 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
 
   // ── Per-lot sections
   for (const lote of lotes) {
-    // Lote header
     const loteRow = ws.addRow([`Lote ${String(lote.numero).padStart(3, "0")} — ${lote.categoria}`]);
     loteRow.getCell(1).font = loteFont;
     ws.mergeCells(loteRow.number, 1, loteRow.number, 5);
     const loteHeaderBg: ExcelJS.FillPattern = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE8F0FE" } };
     for (let c = 1; c <= 5; c++) loteRow.getCell(c).fill = loteHeaderBg;
 
-    // Lote info
     const valRow = ws.addRow(["Valor Aprovado:", currency(lote.preco_aprovado ?? lote.preco_sugerido), "", "Itens:", String(lote.bens.length)]);
     valRow.getCell(1).font = boldFont;
     valRow.getCell(4).font = boldFont;
@@ -224,7 +278,6 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
       locRow.getCell(1).font = boldFont;
     }
 
-    // Table header
     const thRow = ws.addRow(["Tombamento", "Descrição", "Qtd", "Estado", "Valor Est."]);
     for (let c = 1; c <= 5; c++) {
       const cell = thRow.getCell(c);
@@ -234,7 +287,6 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
       cell.alignment = { horizontal: "center", vertical: "middle" };
     }
 
-    // Table body
     for (const item of lote.bens) {
       const dr = ws.addRow([
         item.tombamento || "—",
@@ -250,8 +302,14 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
       dr.getCell(5).alignment = { horizontal: "right" };
     }
 
-    ws.addRow([]); // spacing
+    ws.addRow([]);
   }
+
+  // ── Footer
+  ws.addRow([]);
+  const ftRow = ws.addRow([footerText()]);
+  ftRow.getCell(1).font = { italic: true, size: 9, color: { argb: "FF666666" } };
+  ws.mergeCells(ftRow.number, 1, ftRow.number, 5);
 
   // Download
   const buffer = await wb.xlsx.writeBuffer();
@@ -267,23 +325,16 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
 // ───── DOCX Generation ─────
 
 export async function downloadDocx(processoTitulo: string, lotes: LoteComBens[]) {
-  const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, BorderStyle, ShadingType, HeadingLevel } = await import("docx");
+  const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, BorderStyle, ShadingType, Header, Footer } = await import("docx");
 
   const totalAprovado = lotes.reduce((s, l) => s + (l.preco_aprovado ?? l.preco_sugerido), 0);
 
   const children: any[] = [];
 
-  // Title
-  children.push(new Paragraph({
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 300 },
-    children: [new TextRun({ text: "DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO", bold: true, size: 32 })],
-  }));
-
-  // Header info
+  // Process info
   const infoLines = [
     `Processo: ${processoTitulo}`,
-    `Data de Geração: ${new Date().toLocaleDateString("pt-BR")}`,
+    `Data de Geração: ${dataGeracao()}`,
     `Total de Lotes: ${lotes.length}`,
     `Valor Total Aprovado: ${currency(totalAprovado)}`,
   ];
@@ -304,7 +355,6 @@ export async function downloadDocx(processoTitulo: string, lotes: LoteComBens[])
   const cellBorders = { top: borderStyle, bottom: borderStyle, left: borderStyle, right: borderStyle };
 
   for (const lote of lotes) {
-    // Lote header
     children.push(new Paragraph({
       spacing: { before: 300, after: 100 },
       shading: { type: ShadingType.SOLID, color: "E8F0FE" },
@@ -332,7 +382,6 @@ export async function downloadDocx(processoTitulo: string, lotes: LoteComBens[])
       }));
     }
 
-    // Table
     const headerCells = ["Tombamento", "Descrição", "Qtd", "Estado", "Valor Est."].map(
       (h) => new TableCell({
         shading: { type: ShadingType.SOLID, color: "2980B9" },
@@ -369,7 +418,34 @@ export async function downloadDocx(processoTitulo: string, lotes: LoteComBens[])
   }
 
   const doc = new Document({
-    sections: [{ children }],
+    sections: [{
+      headers: {
+        default: new Header({
+          children: [
+            new Paragraph({
+              shading: { type: ShadingType.SOLID, color: "143C64" },
+              spacing: { after: 40 },
+              children: [new TextRun({ text: APP_NAME, bold: true, color: "FFFFFF", size: 28 })],
+            }),
+            new Paragraph({
+              shading: { type: ShadingType.SOLID, color: "143C64" },
+              children: [new TextRun({ text: "DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO", color: "FFFFFF", size: 20 })],
+            }),
+          ],
+        }),
+      },
+      footers: {
+        default: new Footer({
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [new TextRun({ text: footerText(), italics: true, size: 16, color: "666666" })],
+            }),
+          ],
+        }),
+      },
+      children,
+    }],
   });
 
   const buffer = await Packer.toBlob(doc);
