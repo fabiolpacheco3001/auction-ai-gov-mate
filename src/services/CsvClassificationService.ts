@@ -1,5 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export interface Precificacao {
+  valorMedioGeral: number | null;
+  valorMedioPorSite: { url: string; valorMedio: number | null; confianca: number }[];
+  quantidadeSites: number;
+}
+
 export interface LoteItem {
   linha: number;
   tombamento: string;
@@ -11,6 +17,7 @@ export interface LoteItem {
   quantidade: number;
   valor: number;
   valorMedioLeilao: number | null;
+  precificacao?: Precificacao;
 }
 
 export interface LoteClassificado {
