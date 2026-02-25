@@ -316,6 +316,7 @@ const LotesGerados = () => {
           const isOpen = openProcessos.has(group.processo.id);
           const groupTotal = group.lotes.reduce((s, l) => s + l.preco_sugerido, 0);
           const groupApproved = group.lotes.filter((l) => l.status === "aprovado").length;
+          const allLotesApproved = groupApproved === group.lotes.length;
 
           return (
             <Collapsible key={group.processo.id} open={isOpen} onOpenChange={() => toggleProcesso(group.processo.id)}>
@@ -323,6 +324,7 @@ const LotesGerados = () => {
               <div className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border shadow-card cursor-pointer hover:bg-muted/30 transition-colors">
                   <Checkbox
                     checked={selectedProcessos.has(group.processo.id)}
+                    disabled={allLotesApproved}
                     onCheckedChange={(checked) => {
                       setSelectedProcessos((prev) => {
                         const next = new Set(prev);
