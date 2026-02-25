@@ -59,18 +59,30 @@ const Documentos = () => {
           <h1 className="text-2xl font-display font-bold text-foreground">Documentos</h1>
           <p className="text-muted-foreground mt-1">Geração e exportação de documentos para leilão</p>
         </div>
-        <Button variant="outline" className="gap-2"><Filter className="w-4 h-4" /> Filtrar</Button>
+        <Button variant="outline" className="gap-2">
+          <Filter className="w-4 h-4" /> Filtrar
+        </Button>
       </div>
 
       <div className="bg-card rounded-xl border border-border shadow-card overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border bg-muted/30">
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-3">Documento</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-3">Processo</th>
-              <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-3">Tipo</th>
-              <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-3">Status</th>
-              <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-3">Ação</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-3">
+                Documento
+              </th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-3">
+                Processo
+              </th>
+              <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-3">
+                Tipo
+              </th>
+              <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-3">
+                Status
+              </th>
+              <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-3">
+                Ação
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -88,13 +100,26 @@ const Documentos = () => {
                     <FileText className="w-4 h-4 text-accent shrink-0" />
                     <div>
                       <p className="text-sm font-medium text-foreground">{doc.nome}</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />{doc.data}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Geração: {doc.data}
+                        <Clock className="w-3 h-3" />
+                        Aprovação: {doc.created_at}
+                      </p>
                     </div>
                   </div>
                 </td>
                 <td className="px-5 py-3.5 text-sm text-muted-foreground">{doc.processo_titulo}</td>
-                <td className="px-5 py-3.5 text-center"><span className="text-xs font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground">{doc.tipo}</span></td>
-                <td className="px-5 py-3.5 text-center"><span className={cn("text-xs font-medium px-2.5 py-1 rounded-full", statusStyles[doc.status] ?? "")}>{doc.status === "finalizado" ? "Finalizado" : "Rascunho"}</span></td>
+                <td className="px-5 py-3.5 text-center">
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
+                    {doc.tipo}
+                  </span>
+                </td>
+                <td className="px-5 py-3.5 text-center">
+                  <span className={cn("text-xs font-medium px-2.5 py-1 rounded-full", statusStyles[doc.status] ?? "")}>
+                    {doc.status === "finalizado" ? "Finalizado" : "Rascunho"}
+                  </span>
+                </td>
                 <td className="px-5 py-3.5 text-center">
                   {doc.status === "finalizado" && doc.processo_id ? (
                     <DropdownMenu>
@@ -105,15 +130,9 @@ const Documentos = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleDownload(doc, "pdf")}>
-                          📄 Baixar PDF
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDownload(doc, "xlsx")}>
-                          📊 Baixar XLSX
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDownload(doc, "docx")}>
-                          📝 Baixar DOCX
-                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDownload(doc, "pdf")}>📄 Baixar PDF</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDownload(doc, "xlsx")}>📊 Baixar XLSX</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDownload(doc, "docx")}>📝 Baixar DOCX</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   ) : (
