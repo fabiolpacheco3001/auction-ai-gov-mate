@@ -25,163 +25,157 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: sitesPrecificacao } = await supabase
-      .from("sites_precificacao")
-      .select("url, descricao")
-      .order("created_at", { ascending: true });
+    const { data: sitesPrecificacao } = await supabase.from("sites_precificacao").select("url, descricao");
 
-    const sites = sitesPrecificacao ?? [];
-
-    const sitesInfo = sites
-      .map((s: any, i: number) => `- Site ${i + 1}: ${s.url}${s.descricao ? ` (${s.descricao})` : ""}`)
+    const sitesInfo = (sitesPrecificacao ?? [])
+      .map((s: any) => `- ${s.url}${s.descricao ? ` (${s.descricao})` : ""}`)
       .join("\n");
 
-    const sitesJson = JSON.stringify(sites, null, 2);
-
     console.log("Total de registros CSV:", dadosCsv?.length);
-    console.log("Sites de precificação encontrados:", sites.length);
+    console.log("Sites de precificação encontrados:", sitesPrecificacao?.length ?? 0);
 
-    const userMessage = `PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO também conhecido como promptConfigurado (REGRA DE PRIORIDADE MÁXIMA):
+    const userMessage = `PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO:
 ${promptConfigurado}
 
-IMPORTANTE — REGRA DE PRIORIDADE ABSOLUTA:
+====================================================================
+REGRA DE PRIORIDADE ABSOLUTA
+============================
 
-O promptConfigurado é a fonte principal e soberana para definir:
+O PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO é a autoridade máxima e soberana para definir:
 
-- como os itens devem ser classificados
-- como os itens devem ser agrupados em lotes
-- quais campos devem ser considerados no agrupamento
-- quais campos devem ser ignorados
+* como os itens devem ser classificados
+* como os itens devem ser agrupados em lotes
+* quais campos devem ser considerados no agrupamento
+* quais campos devem ser ignorados
+
+REGRA CRÍTICA:
 
 Se houver qualquer conflito entre:
 
-- o promptConfigurado
-- as instruções abaixo
-- ou qualquer padrão implícito
+* o PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO
+* ou qualquer outra instrução abaixo
+* ou qualquer padrão implícito
 
-Você DEVE sempre obedecer exclusivamente o promptConfigurado.
+Você deve SEMPRE obedecer exclusivamente o PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO.
 
-Nunca substitua, ignore ou complemente as regras do promptConfigurado por conta própria.
+Nunca substitua essas regras.
+Nunca complemente essas regras.
+Nunca crie regras próprias de agrupamento.
 
-Nunca aplique regras padrão de agrupamento se o promptConfigurado definir regras específicas.
+Se o PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO definir regras de agrupamento, utilize exclusivamente essas regras.
 
-Somente utilize regras padrão se o promptConfigurado NÃO definir nenhuma regra de agrupamento.
+Somente utilize agrupamento padrão se o PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO não definir nenhuma regra de agrupamento.
 
----
+====================================================================
+SITES DE PRECIFICAÇÃO PARA CONSULTA DE VALORES
+==============================================
 
-SITES DE PRECIFICAÇÃO PARA CONSULTA DE VALORES:
 ${sitesInfo || "Nenhum site configurado."}
 
-LISTA ESTRUTURADA DOS SITES:
-${sitesJson}
+Cada site listado acima deve ser considerado uma fonte independente de referência de valor de mercado.
 
----
+====================================================================
+DADOS DO CSV
+============
 
-DADOS DO CSV:
 ${JSON.stringify(dadosCsv, null, 2)}
 
----
+====================================================================
+INSTRUÇÕES DE CLASSIFICAÇÃO E AGRUPAMENTO
+=========================================
 
-INSTRUÇÕES GERAIS:
+Você deve:
 
-1. Classifique e agrupe os itens seguindo estritamente o promptConfigurado
-2. O agrupamento em lotes deve ser determinado EXCLUSIVAMENTE pelo promptConfigurado
-3. Não crie regras próprias de agrupamento
-4. Não use suposições
-5. Não use agrupamento implícito
-6. Apenas siga o que está definido no promptConfigurado
+1. Analisar todos os registros do CSV
+2. Classificar os itens conforme o PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO
+3. Agrupar os itens em lotes EXCLUSIVAMENTE conforme o PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO
+4. Não criar regras próprias
+5. Não assumir regras implícitas
+6. Não agrupar por categoria, município ou localização, exceto se isso estiver explicitamente definido no PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO
 
----
+Cada lote deve conter apenas os itens que pertencem ao mesmo grupo conforme definido pelo PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO.
 
-PESQUISA DE VALOR MÉDIO DE LEILÃO:
+====================================================================
+INSTRUÇÕES DE PRECIFICAÇÃO
+==========================
 
-Para cada item, você deve:
+Para cada item, você deve estimar o valor médio de venda em leilões públicos.
 
-- Usar a descrição, categoria, estado e demais dados disponíveis do item
-- Considerar os sites de precificação fornecidos como referência de mercado
-- Estimar o valor médio de venda em leilões para CADA SITE individualmente
-- Retornar os valores estimados POR SITE no campo "precificacao.valorMedioPorSite"
-- Cada entrada em valorMedioPorSite deve conter a URL do site, o valorMedio estimado e a confiança (0 a 1)
-- Retornar também "precificacao.valorMedioGeral" como média dos valores dos sites
-- Retornar "precificacao.quantidadeSites" com o número de sites consultados
-- Considerar valores realistas de mercado
-- Ignorar valores irreais ou fora do padrão
-- Usar similaridade quando necessário
-- Retornar null para valorMedio se não houver confiança suficiente
+Use:
 
----
+* descrição
+* categoria
+* estado
+* localização
+* e demais dados disponíveis
 
-REGRAS DE AGRUPAMENTO DE LOTES:
+Considere os sites de precificação fornecidos como referência de mercado.
 
-ATENÇÃO — REGRA CRÍTICA:
+Regras:
 
-O agrupamento deve seguir EXCLUSIVAMENTE o promptConfigurado.
+* estimar valor realista de mercado
+* ignorar valores irreais
+* usar similaridade com itens equivalentes
+* usar aproximação inteligente quando necessário
 
-Isso significa:
+Retorne:
 
-- O promptConfigurado define completamente como os lotes são formados
-- Não utilize nenhuma lógica padrão que não esteja definida no promptConfigurado
-- Não agrupe por categoria, município ou localização, a menos que o promptConfigurado determine isso explicitamente
+"valorMedioLeilao": number | null
 
----
+Retorne null se não houver confiança suficiente.
 
-FORMATO DE RESPOSTA OBRIGATÓRIO:
+====================================================================
+FORMATO DE RESPOSTA OBRIGATÓRIO
+===============================
 
-Retorne APENAS um JSON válido no seguinte formato:
+Retorne APENAS um JSON válido no formato:
 
 {
-  "lotes": [
-    {
-      "categoria": string,
-      "municipio": string,
-      "localizacao": string,
-      "quantidadeItens": number,
-      "valorTotal": number,
-      "itens": [
-        {
-          "linha": number,
-          "tombamento": string,
-          "descricao": string,
-          "categoria": string,
-          "estado": string,
-          "localizacao": string,
-          "municipio": string,
-          "quantidade": number,
-          "valor": number,
-          "valorMedioLeilao": number | null,
-          "precificacao": {
-            "valorMedioGeral": number | null,
-            "valorMedioPorSite": [
-              { "url": string, "valorMedio": number | null, "confianca": number }
-            ],
-            "quantidadeSites": number
-          }
-        }
-      ]
-    }
-  ],
-  "errosEncontrados": [],
-  "avisos": [],
-  "sugestoes": [],
-  "totalRegistros": number,
-  "totalErros": number,
-  "totalLotes": number
+"lotes": [
+{
+"categoria": string,
+"municipio": string,
+"localizacao": string,
+"quantidadeItens": number,
+"valorTotal": number,
+"itens": [
+{
+"linha": number,
+"tombamento": string,
+"descricao": string,
+"categoria": string,
+"estado": string,
+"localizacao": string,
+"municipio": string,
+"quantidade": number,
+"valor": number,
+"valorMedioLeilao": number | null
+}
+]
+}
+],
+"errosEncontrados": [],
+"avisos": [],
+"sugestoes": [],
+"totalRegistros": number,
+"totalErros": number,
+"totalLotes": number
 }
 
----
+====================================================================
+REGRAS OBRIGATÓRIAS FINAIS
+==========================
 
-INSTRUÇÕES OBRIGATÓRIAS FINAIS:
-
-- O agrupamento deve seguir exclusivamente o promptConfigurado
-- Nunca invente regras de agrupamento
-- Nunca use padrões implícitos
-- Cada lote deve conter apenas os itens definidos pelas regras do promptConfigurado
-- Calcule quantidadeItens corretamente
-- Calcule valorTotal corretamente
-- OBRIGATÓRIO: cada item DEVE conter o campo "precificacao" com valorMedioPorSite preenchido para cada site configurado
-- Retorne somente JSON válido
-- Não retorne explicações
-- Não retorne texto fora do JSON`;
+* O agrupamento deve seguir EXCLUSIVAMENTE o PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO
+* Nunca invente regras de agrupamento
+* Nunca use padrões implícitos
+* Cada lote deve conter apenas os itens definidos pelas regras do PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO
+* Calcule quantidadeItens corretamente
+* Calcule valorTotal corretamente
+* Retorne somente JSON válido
+* Não retorne explicações
+* Não retorne texto fora do JSON
+`;
 
     console.log("Prompt usadox:", userMessage);
 
@@ -197,7 +191,7 @@ INSTRUÇÕES OBRIGATÓRIAS FINAIS:
           {
             role: "system",
             content:
-              "Você é um especialista em classificação e agrupamento de bens patrimoniais, avaliação de leilões públicos, classificação patrimonial e precificação de bens usados.\n\nSua tarefa é:\n1. Classificar os itens conforme o prompt do usuário\n2. Agrupar os itens conforme definido no prompt do usuário\n3. Para cada item, estimar o valor médio de leilão para CADA site de precificação fornecido individualmente\n4. Retornar no campo precificacao.valorMedioPorSite um array com um objeto para cada site (url, valorMedio, confianca)\n5. Usar aproximação inteligente baseada em similaridade quando não houver correspondência exata\n6. Retornar os dados estruturados em formato de lotes\n\nResponda APENAS com JSON válido.",
+              "Você é um especialista em classificação e agrupamento de bens patrimoniais, avaliação de leilões públicos, classificação patrimonial e precificação de bens usados.\n\nSua tarefa é:\n1. Classificar os itens conforme o prompt do usuário\n2. Agrupar os itens por categoria + municipio + localizacao (cada combinação única = um lote)\n3. Para cada item, estimar o valor médio de leilão consultando os sites de precificação fornecidos\n4. Usar aproximação inteligente baseada em similaridade quando não houver correspondência exata\n5. Retornar os dados estruturados em formato de lotes com o campo valorMedioLeilao\n\nResponda APENAS com JSON válido.",
           },
           { role: "user", content: userMessage },
         ],
