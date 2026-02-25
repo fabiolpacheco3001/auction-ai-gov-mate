@@ -38,15 +38,13 @@ const ConfiguracaoPrecificacao = () => {
   });
 
   const [rows, setRows] = useState<SiteRow[]>(
-    Array.from({ length: FIXED_COUNT }, () => ({ id: null, url: "", descricao: "" }))
+    Array.from({ length: FIXED_COUNT }, () => ({ id: null, url: "", descricao: "" })),
   );
 
   useEffect(() => {
     const merged: SiteRow[] = Array.from({ length: FIXED_COUNT }, (_, i) => {
       const db = dbSites[i];
-      return db
-        ? { id: db.id, url: db.url, descricao: db.descricao ?? "" }
-        : { id: null, url: "", descricao: "" };
+      return db ? { id: db.id, url: db.url, descricao: db.descricao ?? "" } : { id: null, url: "", descricao: "" };
     });
     setRows(merged);
   }, [dbSites]);
@@ -112,9 +110,7 @@ const ConfiguracaoPrecificacao = () => {
       const ext = file.name.split(".").pop();
       const filePath = `orgao-logo-${Date.now()}.${ext}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("logos")
-        .upload(filePath, file, { upsert: true });
+      const { error: uploadError } = await supabase.storage.from("logos").upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
@@ -156,12 +152,8 @@ const ConfiguracaoPrecificacao = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">
-          Configuração de Precificação
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Gerencie os sites de referência e configurações gerais.
-        </p>
+        <h1 className="text-2xl font-display font-bold text-foreground">Configurações da Aplicação</h1>
+        <p className="text-muted-foreground mt-1">Gerencie os sites de referência e configurações gerais.</p>
       </div>
 
       {/* ── Configurações Gerais ── */}
@@ -196,24 +188,9 @@ const ConfiguracaoPrecificacao = () => {
               )}
             </div>
             <div className="flex items-center gap-2 mt-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleLogoUpload}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-              >
-                {uploading ? (
-                  <Loader2 className="w-4 h-4 animate-spin mr-1" />
-                ) : (
-                  <Upload className="w-4 h-4 mr-1" />
-                )}
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Upload className="w-4 h-4 mr-1" />}
                 {logoUrl ? "Alterar Logo" : "Fazer Upload"}
               </Button>
             </div>
@@ -250,9 +227,7 @@ const ConfiguracaoPrecificacao = () => {
                 <TableBody>
                   {rows.map((row, i) => (
                     <TableRow key={i}>
-                      <TableCell className="text-center font-semibold text-muted-foreground">
-                        {i + 1}
-                      </TableCell>
+                      <TableCell className="text-center font-semibold text-muted-foreground">{i + 1}</TableCell>
                       <TableCell>
                         <Input
                           placeholder="https://exemplo.com.br"
