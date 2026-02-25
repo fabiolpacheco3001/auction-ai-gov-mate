@@ -14,6 +14,7 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -85,6 +86,7 @@ const LotesGerados = () => {
   const [editingPrice, setEditingPrice] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [openProcessos, setOpenProcessos] = useState<Set<string>>(new Set());
+  const [selectedProcessos, setSelectedProcessos] = useState<Set<string>>(new Set());
 
   const { data: groups = [] } = useQuery<ProcessoGroup[]>({
     queryKey: ["lotes-by-processo"],
@@ -251,18 +253,20 @@ const LotesGerados = () => {
   };
 
   const aprovarTodos = async () => {
-    for (const l of allLotes) {
-      if (l.status !== "aprovado") {
-        await supabase.from("lotes").update({ status: "aprovado", preco_aprovado: l.preco_sugerido }).eq("id", l.id);
+    const selectedGroups = groups.filter((g) => selectedProcessos.has(g.processo.id));
+    for (const group of selectedGroups) {
+      for (const l of group.lotes) {
+        if (l.status !== "aprovado") {
+          await supabase.from("lotes").update({ status: "aprovado", preco_aprovado: l.preco_sugerido }).eq("id", l.id);
+        }
       }
     }
     queryClient.invalidateQueries({ queryKey: ["lotes-by-processo"] });
-    toast.success("Todos os lotes aprovados!");
-    // Generate docs for each process
-    const processoIds = [...new Set(allLotes.map((l) => l.processo_id).filter(Boolean))] as string[];
-    for (const pid of processoIds) {
-      await checkAndGenerateDocument(pid);
+    toast.success("Lotes dos processos selecionados aprovados!");
+    for (const group of selectedGroups) {
+      await checkAndGenerateDocument(group.processo.id);
     }
+    setSelectedProcessos(new Set());
   };
 
   const totalEstimado = allLotes.reduce((sum, l) => sum + l.preco_sugerido, 0);
@@ -277,8 +281,8 @@ const LotesGerados = () => {
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" className="gap-2"><FileDown className="w-4 h-4" /> Exportar</Button>
-          <Button onClick={aprovarTodos} className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2">
-            <CheckCircle2 className="w-4 h-4" /> Aprovar Todos
+          <Button onClick={aprovarTodos} disabled={selectedProcessos.size === 0} className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2">
+            <CheckCircle2 className="w-4 h-4" /> Aprovar Selecionados
           </Button>
         </div>
       </div>
@@ -316,7 +320,20 @@ const LotesGerados = () => {
           return (
             <Collapsible key={group.processo.id} open={isOpen} onOpenChange={() => toggleProcesso(group.processo.id)}>
               <CollapsibleTrigger asChild>
-                <div className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border shadow-card cursor-pointer hover:bg-muted/30 transition-colors">
+              <div className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border shadow-card cursor-pointer hover:bg-muted/30 transition-colors">
+                  <Checkbox
+                    checked={selectedProcessos.has(group.processo.id)}
+                    onCheckedChange={(checked) => {
+                      setSelectedProcessos((prev) => {
+                        const next = new Set(prev);
+                        if (checked) next.add(group.processo.id);
+                        else next.delete(group.processo.id);
+                        return next;
+                      });
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="shrink-0"
+                  />
                   <FolderOpen className="w-5 h-5 text-accent shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
