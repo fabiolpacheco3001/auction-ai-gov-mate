@@ -239,16 +239,65 @@ const NovoProcesso = () => {
         </div>
       </div>
 
-      {/* API integration hint */}
-      <div className="bg-muted/50 border border-border rounded-xl p-5 flex items-start gap-4">
-        <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center shrink-0">
-          <Plug className="w-5 h-5 text-info" />
+      {/* API integration docs */}
+      <div className="bg-muted/50 border border-border rounded-xl p-5 space-y-4">
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center shrink-0">
+            <Plug className="w-5 h-5 text-info" />
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold text-foreground mb-1">Integração via API</h4>
+            <p className="text-sm text-muted-foreground">
+              Envie itens diretamente do seu sistema patrimonial (SIADS, ASI, SIPAC e outros) via API REST.
+              Gerencie seus tokens em{" "}
+              <Link to="/configuracoes/api-token" className="text-accent font-medium hover:underline">
+                API Access Token
+              </Link>.
+            </p>
+          </div>
         </div>
-        <div>
-          <h4 className="text-sm font-semibold text-foreground mb-1">Integração via API</h4>
-          <p className="text-sm text-muted-foreground">
-            Em breve será possível integrar diretamente com seu sistema patrimonial (SIADS, ASI, SIPAC e outros)
-            para importação automática dos dados, eliminando a etapa de upload manual.
+
+        <div className="bg-background border border-border rounded-lg p-4 space-y-3">
+          <p className="text-xs font-semibold text-foreground">Endpoint</p>
+          <code className="text-xs bg-muted px-2 py-1 rounded block font-mono break-all">
+            POST {import.meta.env.VITE_SUPABASE_URL}/functions/v1/intake-items
+          </code>
+
+          <p className="text-xs font-semibold text-foreground mt-3">Headers</p>
+          <code className="text-xs bg-muted px-2 py-1 rounded block font-mono">
+            Authorization: Bearer &lt;seu_token&gt;{"\n"}Content-Type: application/json
+          </code>
+
+          <p className="text-xs font-semibold text-foreground mt-3">Corpo da requisição (JSON)</p>
+          <pre className="text-xs bg-muted px-3 py-2 rounded font-mono overflow-x-auto whitespace-pre">{`{
+  "titulo": "Processo - Lote Veículos 2026",
+  "orgao": "Prefeitura de São Paulo",
+  "itens": [
+    {
+      "tombamento": "VEI-2010-001",
+      "descricao": "Fiat Uno 2010 - Placa ABC-1234",
+      "categoria": "veiculos",
+      "estado": "inservivel",
+      "localizacao": "Garagem Central",
+      "municipio": "São Paulo",
+      "quantidade": 1,
+      "valor_estimado": 4500.00
+    }
+  ]
+}`}</pre>
+
+          <p className="text-xs font-semibold text-foreground mt-3">Resposta de sucesso (201)</p>
+          <pre className="text-xs bg-muted px-3 py-2 rounded font-mono overflow-x-auto whitespace-pre">{`{
+  "sucesso": true,
+  "processo_id": "uuid",
+  "total_bens": 1,
+  "total_lotes": 1,
+  "mensagem": "Processo criado com sucesso."
+}`}</pre>
+
+          <p className="text-xs text-muted-foreground mt-2">
+            Os lotes serão criados automaticamente agrupados por categoria com status <strong>pendente</strong>. 
+            Aprove-os na tela de <Link to="/lotes" className="text-accent hover:underline">Lotes Gerados</Link>.
           </p>
         </div>
       </div>

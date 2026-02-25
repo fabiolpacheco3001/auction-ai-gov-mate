@@ -6,6 +6,7 @@ import {
   FileText,
   BarChart3,
   Settings,
+  Key,
   Gavel,
   ChevronLeft,
   ChevronRight,
@@ -22,6 +23,7 @@ const navItems = [
   { to: "/documentos", label: "Documentos", icon: FileText },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { to: "/configuracoes/classificacao-csv", label: "Classificação CSV", icon: Settings },
+  { to: "/configuracoes/api-token", label: "API Access Token", icon: Key },
 ];
 
 const AppSidebar = () => {
