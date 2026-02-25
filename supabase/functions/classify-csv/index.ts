@@ -34,30 +34,85 @@ serve(async (req) => {
     console.log("Total de registros CSV:", dadosCsv?.length);
     console.log("Sites de precificação encontrados:", sitesPrecificacao?.length ?? 0);
 
-    const userMessage = `PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO:
+    const userMessage = `PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO (REGRA DE PRIORIDADE MÁXIMA):
 ${promptConfigurado}
+
+IMPORTANTE — REGRA DE PRIORIDADE ABSOLUTA:
+
+O prompt definido pelo usuário é a fonte principal e soberana para definir:
+
+- como os itens devem ser classificados
+- como os itens devem ser agrupados em lotes
+- quais campos devem ser considerados no agrupamento
+- quais campos devem ser ignorados
+
+Se houver qualquer conflito entre:
+
+- o promptConfigurado
+- as instruções abaixo
+- ou qualquer padrão implícito
+
+Você DEVE sempre obedecer exclusivamente o prompt definido pelo usuário.
+
+Nunca substitua, ignore ou complemente as regras do prompt usuário por conta própria.
+
+Nunca aplique regras padrão de agrupamento se o promptConfigurado definir regras específicas.
+
+Somente utilize regras padrão se o promptConfigurado NÃO definir nenhuma regra de agrupamento.
+
+---
 
 SITES DE PRECIFICAÇÃO PARA CONSULTA DE VALORES:
 ${sitesInfo || "Nenhum site configurado."}
 
+---
+
 DADOS DO CSV:
 ${JSON.stringify(dadosCsv, null, 2)}
 
-INSTRUÇÕES:
-Analise os dados e aplique exatamente as regras definidas no prompt do usuário.
+---
+
+INSTRUÇÕES GERAIS:
+
+1. Classifique e agrupe os itens seguindo estritamente o promptConfigurado
+2. O agrupamento em lotes deve ser determinado EXCLUSIVAMENTE pelo promptConfigurado
+3. Não crie regras próprias de agrupamento
+4. Não use suposições
+5. Não use agrupamento implícito
+6. Apenas siga o que está definido no promptConfigurado
+
+---
 
 PESQUISA DE VALOR MÉDIO DE LEILÃO:
+
 Para cada item, você deve:
+
 - Usar a descrição, categoria, estado e demais dados disponíveis do item
-- Com base no seu conhecimento dos sites de precificação listados acima, estimar o valor médio de venda em leilões de itens equivalentes ou similares
-- Considerar valores realistas de mercado para bens usados em leilões públicos
+- Considerar os sites de precificação fornecidos como referência de mercado
+- Estimar o valor médio de venda em leilões de itens equivalentes ou similares
+- Considerar valores realistas de mercado
 - Ignorar valores irreais ou fora do padrão
-- Usar aproximação inteligente baseada em similaridade quando não houver correspondência exata
-- Retornar o valor no campo "valorMedioLeilao" (numérico float)
-- Se não for possível estimar um valor confiável, retornar null
+- Usar similaridade quando necessário
+- Retornar no campo "valorMedioLeilao"
+- Retornar null se não houver confiança suficiente
+
+---
 
 REGRAS DE AGRUPAMENTO DE LOTES:
-- Deve considerar as regras definidas pelo usuário
+
+ATENÇÃO — REGRA CRÍTICA:
+
+O agrupamento deve seguir EXCLUSIVAMENTE o promptConfigurado.
+
+Isso significa:
+
+- O promptConfigurado define completamente como os lotes são formados
+- Não utilize nenhuma lógica padrão que não esteja definida no promptConfigurado
+- Não agrupe por categoria, município ou localização, a menos que o promptConfigurado determine isso explicitamente
+
+---
+
+FORMATO DE RESPOSTA OBRIGATÓRIO:
 
 Retorne APENAS um JSON válido no seguinte formato:
 
@@ -93,18 +148,20 @@ Retorne APENAS um JSON válido no seguinte formato:
   "totalLotes": number
 }
 
-INSTRUÇÕES OBRIGATÓRIAS:
-- Agrupe os registros por categoria + municipio + localizacao
-- Cada combinação única deve se tornar um lote
-- Cada lote deve conter todos os itens daquela combinação
-- Calcule quantidadeItens e valorTotal corretamente
-- Use o promptConfigurado como regra principal de classificação
-- O campo "municipio" deve conter o município do item
-- O campo "quantidade" deve conter a quantidade do item (padrão 1 se não informado)
-- O campo "valorMedioLeilao" deve conter o valor médio estimado de leilão baseado nos sites de precificação
+---
+
+INSTRUÇÕES OBRIGATÓRIAS FINAIS:
+
+- O agrupamento deve seguir exclusivamente o promptConfigurado
+- Nunca invente regras de agrupamento
+- Nunca use padrões implícitos
+- Cada lote deve conter apenas os itens definidos pelas regras do promptConfigurado
+- Calcule quantidadeItens corretamente
+- Calcule valorTotal corretamente
 - Retorne somente JSON válido
 - Não retorne explicações
 - Não retorne texto fora do JSON`;
+
     console.log("Prompt usadox:", userMessage);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
