@@ -355,24 +355,45 @@ REGRAS OBRIGATÓRIAS FINAIS
 
     if (procErr) throw procErr;
 
-    // Insert bens with AI pricing
+    // Insert bens with AI pricing (same logic as CSV flow in RevisaoLotes)
     const bensToInsert = itensValidados.map((item: any, idx: number) => {
-      // Find this item in AI results to get valorMedioLeilao
+      // Find this item in AI results to get valorMedioLeilao and precificacao
       let valorMedioLeilao: number | null = null;
+      let site1: number | null = null;
+      let site2: number | null = null;
+      let site3: number | null = null;
+
       for (const lote of lotes) {
         const aiItem = lote.itens?.find((i: any) => i.linha === idx + 1);
         if (aiItem) {
           valorMedioLeilao = aiItem.valorMedioLeilao ?? null;
           // Update categoria from AI classification
           item.categoria = aiItem.categoria ?? item.categoria;
+
+          // Extract per-site values from precificacao (same as CSV flow)
+          const sites = aiItem.precificacao?.valorMedioPorSite ?? [];
+          site1 = sites[0]?.valorMedio ?? null;
+          site2 = sites[1]?.valorMedio ?? null;
+          site3 = sites[2]?.valorMedio ?? null;
+
+          // If no per-site data but valorMedioLeilao exists, use it as site1
+          if (site1 === null && site2 === null && site3 === null && valorMedioLeilao != null) {
+            site1 = valorMedioLeilao;
+          }
           break;
         }
       }
 
-      const valores = [item.valor_estimado, valorMedioLeilao]
+      // Use input values as fallback if AI didn't provide site values
+      site1 = site1 ?? item.valor_medio_site1;
+      site2 = site2 ?? item.valor_medio_site2;
+      site3 = site3 ?? item.valor_medio_site3;
+
+      // Calculate valor_sugerido same way as CSV flow (average of all available values)
+      const valoresDisponiveis = [item.valor_estimado, site1, site2, site3]
         .filter((v: any) => v !== null && v !== undefined && v > 0);
-      const valorSugerido = valores.length > 0
-        ? valores.reduce((a: number, b: number) => a + b, 0) / valores.length
+      const valorSugerido = valoresDisponiveis.length > 0
+        ? valoresDisponiveis.reduce((a: number, b: number) => a + b, 0) / valoresDisponiveis.length
         : null;
 
       return {
@@ -385,9 +406,9 @@ REGRAS OBRIGATÓRIAS FINAIS
         municipio: item.municipio,
         quantidade: item.quantidade,
         valor_estimado: item.valor_estimado,
-        valor_medio_site1: item.valor_medio_site1,
-        valor_medio_site2: item.valor_medio_site2,
-        valor_medio_site3: item.valor_medio_site3,
+        valor_medio_site1: site1,
+        valor_medio_site2: site2,
+        valor_medio_site3: site3,
         valor_sugerido: valorSugerido,
       };
     });
@@ -403,9 +424,16 @@ REGRAS OBRIGATÓRIAS FINAIS
     let loteNumero = 1;
     for (const aiLote of lotes) {
       const loteItens = aiLote.itens ?? [];
-      const precoSugerido = loteItens.reduce((s: number, i: any) => {
-        const vm = i.valorMedioLeilao ?? i.valor ?? 0;
-        return s + vm * (i.quantidade ?? 1);
+      // Calculate lote price same way as CSV flow
+      const precoSugerido = loteItens.reduce((s: number, aiItem: any) => {
+        const idx = (aiItem.linha ?? 0) - 1;
+        if (idx >= 0 && idx < bensToInsert.length) {
+          const bem = bensToInsert[idx];
+          const vs = bem.valor_sugerido ?? bem.valor_estimado ?? 0;
+          return s + (bem.quantidade ?? 1) * vs;
+        }
+        const vm = aiItem.valorMedioLeilao ?? aiItem.valor ?? 0;
+        return s + vm * (aiItem.quantidade ?? 1);
       }, 0);
 
       const { data: lote, error: loteErr } = await supabaseAdmin
