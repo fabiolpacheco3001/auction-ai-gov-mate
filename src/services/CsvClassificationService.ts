@@ -25,6 +25,7 @@ const ESTADOS_VALIDOS = ["bom", "regular", "ruim", "inservivel"];
 
 export const CsvClassificationService = {
   async classificarCsv(file: File, promptConfigurado: string): Promise<ClassificationResult> {
+    console.log(promptConfigurado);
     const text = await file.text();
     const rows = parseCsv(text);
 
