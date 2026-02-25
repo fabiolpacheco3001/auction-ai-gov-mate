@@ -226,13 +226,12 @@ export async function gerarPdf(processoTitulo: string, lotes: LoteComBens[]): Pr
 
     autoTable(doc, {
       startY,
-      head: [["Tombamento", "Descrição", "Qtd", "Estado", "Valor Est."]],
+      head: [["Tombamento", "Descrição", "Qtd", "Estado"]],
       body: lote.bens.map((item) => [
         item.tombamento || "—",
         item.descricao || "—",
         String(item.quantidade),
         estadoLabels[item.estado] ?? item.estado,
-        currency(item.valor_estimado),
       ]),
       styles: { fontSize: 8 },
       headStyles: { fillColor: [41, 128, 185] },
@@ -260,12 +259,12 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
 
   ws.columns = [
     { width: 22 },
-    { width: 48 },
+    { width: 52 },
     { width: 10 },
-    { width: 16 },
     { width: 18 },
   ];
 
+  const colCount = 4;
   const headerFill: ExcelJS.FillPattern = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2980B9" } };
   const headerFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
   const boldFont: Partial<ExcelJS.Font> = { bold: true, size: 10 };
@@ -297,14 +296,13 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
   }
 
   if (logoImageId !== null) {
-    // Add logo row with image
     const logoRow = ws.addRow([""]);
     logoRow.height = 50;
-    for (let c = 1; c <= 5; c++) logoRow.getCell(c).fill = headerBgFill;
-    ws.mergeCells(logoRow.number, 1, logoRow.number, 5);
+    for (let c = 1; c <= colCount; c++) logoRow.getCell(c).fill = headerBgFill;
+    ws.mergeCells(logoRow.number, 1, logoRow.number, colCount);
 
     ws.addImage(logoImageId, {
-      tl: { col: 1.5, row: logoRow.number - 1 + 0.1 },
+      tl: { col: 1, row: logoRow.number - 1 + 0.1 },
       ext: { width: 160, height: 45 },
     });
   } else {
@@ -312,16 +310,16 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
     appRow.getCell(1).font = headerWhiteFont;
     appRow.getCell(1).fill = headerBgFill;
     appRow.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
-    ws.mergeCells(appRow.number, 1, appRow.number, 5);
-    for (let c = 2; c <= 5; c++) appRow.getCell(c).fill = headerBgFill;
+    ws.mergeCells(appRow.number, 1, appRow.number, colCount);
+    for (let c = 2; c <= colCount; c++) appRow.getCell(c).fill = headerBgFill;
   }
 
   const docTitleRow = ws.addRow(["DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO"]);
   docTitleRow.getCell(1).font = subHeaderFont;
   docTitleRow.getCell(1).fill = headerBgFill;
   docTitleRow.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
-  ws.mergeCells(docTitleRow.number, 1, docTitleRow.number, 5);
-  for (let c = 2; c <= 5; c++) docTitleRow.getCell(c).fill = headerBgFill;
+  ws.mergeCells(docTitleRow.number, 1, docTitleRow.number, colCount);
+  for (let c = 2; c <= colCount; c++) docTitleRow.getCell(c).fill = headerBgFill;
 
   ws.addRow([]);
 
@@ -340,13 +338,13 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
   for (const lote of lotes) {
     const loteRow = ws.addRow([`Lote ${String(lote.numero).padStart(3, "0")} — ${lote.categoria}`]);
     loteRow.getCell(1).font = loteFont;
-    ws.mergeCells(loteRow.number, 1, loteRow.number, 5);
+    ws.mergeCells(loteRow.number, 1, loteRow.number, colCount);
     const loteHeaderBg: ExcelJS.FillPattern = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE8F0FE" } };
-    for (let c = 1; c <= 5; c++) loteRow.getCell(c).fill = loteHeaderBg;
+    for (let c = 1; c <= colCount; c++) loteRow.getCell(c).fill = loteHeaderBg;
 
-    const valRow = ws.addRow(["Valor Aprovado:", currency(lote.preco_aprovado ?? lote.preco_sugerido), "", "Itens:", String(lote.bens.length)]);
+    const valRow = ws.addRow(["Valor Aprovado:", currency(lote.preco_aprovado ?? lote.preco_sugerido), "Itens:", String(lote.bens.length)]);
     valRow.getCell(1).font = boldFont;
-    valRow.getCell(4).font = boldFont;
+    valRow.getCell(3).font = boldFont;
 
     const locations = [...new Set(lote.bens.map((b) => `${b.localizacao}${b.municipio ? ` - ${b.municipio}` : ""}`).filter(Boolean))];
     if (locations.length > 0) {
@@ -354,8 +352,8 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
       locRow.getCell(1).font = boldFont;
     }
 
-    const thRow = ws.addRow(["Tombamento", "Descrição", "Qtd", "Estado", "Valor Est."]);
-    for (let c = 1; c <= 5; c++) {
+    const thRow = ws.addRow(["Tombamento", "Descrição", "Qtd", "Estado"]);
+    for (let c = 1; c <= colCount; c++) {
       const cell = thRow.getCell(c);
       cell.fill = headerFill;
       cell.font = headerFont;
@@ -369,13 +367,11 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
         item.descricao || "—",
         item.quantidade,
         estadoLabels[item.estado] ?? item.estado,
-        currency(item.valor_estimado),
       ]);
-      for (let c = 1; c <= 5; c++) {
+      for (let c = 1; c <= colCount; c++) {
         dr.getCell(c).border = thinBorder;
       }
       dr.getCell(3).alignment = { horizontal: "center" };
-      dr.getCell(5).alignment = { horizontal: "right" };
     }
 
     ws.addRow([]);
@@ -384,7 +380,7 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
   ws.addRow([]);
   const ftRow = ws.addRow([footerText()]);
   ftRow.getCell(1).font = { italic: true, size: 9, color: { argb: "FF666666" } };
-  ws.mergeCells(ftRow.number, 1, ftRow.number, 5);
+  ws.mergeCells(ftRow.number, 1, ftRow.number, colCount);
 
   const buffer = await wb.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
@@ -475,7 +471,7 @@ export async function downloadDocx(processoTitulo: string, lotes: LoteComBens[])
       }));
     }
 
-    const headerCells = ["Tombamento", "Descrição", "Qtd", "Estado", "Valor Est."].map(
+    const headerCells = ["Tombamento", "Descrição", "Qtd", "Estado"].map(
       (h) => new TableCell({
         shading: { type: ShadingType.SOLID, color: "2980B9" },
         borders: cellBorders,
@@ -489,13 +485,12 @@ export async function downloadDocx(processoTitulo: string, lotes: LoteComBens[])
         item.descricao || "—",
         String(item.quantidade),
         estadoLabels[item.estado] ?? item.estado,
-        currency(item.valor_estimado),
       ];
       return new TableRow({
         children: vals.map((v, i) => new TableCell({
           borders: cellBorders,
           children: [new Paragraph({
-            alignment: i === 2 ? AlignmentType.CENTER : i === 4 ? AlignmentType.RIGHT : AlignmentType.LEFT,
+            alignment: i === 2 ? AlignmentType.CENTER : AlignmentType.LEFT,
             children: [new TextRun({ text: v, size: 18 })],
           })],
         })),
@@ -599,20 +594,19 @@ export function gerarConteudoDocumento(processoTitulo: string, lotes: LoteComBen
 
     lines.push("");
     lines.push("  ITENS DO LOTE:");
-    lines.push("  ┌─────────────────┬────────────────────────────────────────┬─────┬────────────┬──────────────┐");
-    lines.push("  │ Tombamento      │ Descrição                              │ Qtd │ Estado     │ Valor Est.   │");
-    lines.push("  ├─────────────────┼────────────────────────────────────────┼─────┼────────────┼──────────────┤");
+    lines.push("  ┌─────────────────┬────────────────────────────────────────┬─────┬────────────┐");
+    lines.push("  │ Tombamento      │ Descrição                              │ Qtd │ Estado     │");
+    lines.push("  ├─────────────────┼────────────────────────────────────────┼─────┼────────────┤");
 
     for (const item of lote.bens) {
       const tomb = (item.tombamento || "—").padEnd(15).slice(0, 15);
       const desc = (item.descricao || "—").padEnd(38).slice(0, 38);
       const qtd = String(item.quantidade).padStart(3);
       const estado = (estadoLabels[item.estado] ?? item.estado).padEnd(10).slice(0, 10);
-      const valor = currency(item.valor_estimado).padStart(12);
-      lines.push(`  │ ${tomb} │ ${desc} │ ${qtd} │ ${estado} │ ${valor} │`);
+      lines.push(`  │ ${tomb} │ ${desc} │ ${qtd} │ ${estado} │`);
     }
 
-    lines.push("  └─────────────────┴────────────────────────────────────────┴─────┴────────────┴──────────────┘");
+    lines.push("  └─────────────────┴────────────────────────────────────────┴─────┴────────────┘");
     lines.push("");
   }
 
