@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,77 +25,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { ClassificationResult, LoteClassificado } from "@/services/CsvClassificationService";
 
-interface BemClassificado {
+interface BemRevisao {
   id: string;
+  linha: number;
   tombamento: string;
   descricao: string;
   categoria: string;
   estado: string;
   localizacao: string;
-  valorEstimado: number;
+  valor: number;
 }
 
 interface LoteRevisao {
   id: string;
   numero: number;
   categoria: string;
-  itens: BemClassificado[];
+  itens: BemRevisao[];
 }
 
-function extrairBens(dadosClassificados: Record<string, unknown>[]): BemClassificado[] {
-  return dadosClassificados.map((d, i) => {
-    const tomb = (d["Número de Tombamento"] ?? d["tombamento"] ?? "") as string;
-    const desc = (d["Descrição do Bem"] ?? d["descricao"] ?? "") as string;
-    const cat = (
-      d["Categoria Atribuída"] ??
-      d["classificacao_ia"] ??
-      d["Categoria (veiculos/eletronicos/moveis/maquinario/outros)"] ??
-      d["categoria"] ??
-      "outros"
-    ) as string;
-    const estado = (
-      d["Estado de Conservação"] ??
-      d["Estado de Conservação (bom/regular/ruim/inservivel)"] ??
-      d["estado"] ??
-      "regular"
-    ) as string;
-    const loc = (d["Localização"] ?? d["localizacao"] ?? "") as string;
-    const valRaw = d["Valor Estimado (R$)"] ?? d["valor_estimado"] ?? 0;
-    const val = typeof valRaw === "number" ? valRaw : parseFloat(String(valRaw).replace(",", ".")) || 0;
-
-    return {
-      id: `bem-${i}-${Date.now()}`,
-      tombamento: tomb,
-      descricao: desc,
-      categoria: cat.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
-      estado: estado.toLowerCase(),
-      localizacao: loc,
-      valorEstimado: val,
-    };
-  });
-}
-
-function agruparEmLotes(bens: BemClassificado[]): LoteRevisao[] {
-  const porCategoria: Record<string, BemClassificado[]> = {};
-  bens.forEach((b) => {
-    if (!porCategoria[b.categoria]) porCategoria[b.categoria] = [];
-    porCategoria[b.categoria].push(b);
-  });
-
-  const nomeCategoria: Record<string, string> = {
-    veiculos: "Veículos",
-    eletronicos: "Eletrônicos",
-    moveis: "Mobiliário",
-    maquinario: "Maquinário",
-    outros: "Outros",
-  };
-
-  return Object.entries(porCategoria).map(([cat, itens], i) => ({
+function buildLotesFromResult(lotes: LoteClassificado[]): LoteRevisao[] {
+  return lotes.map((lote, i) => ({
     id: `lote-${i}-${Date.now()}`,
     numero: i + 1,
-    categoria: nomeCategoria[cat] || cat,
-    itens,
+    categoria: lote.categoria,
+    itens: lote.itens.map((item, j) => ({
+      id: `bem-${i}-${j}-${Date.now()}`,
+      linha: item.linha,
+      tombamento: item.tombamento,
+      descricao: item.descricao,
+      categoria: item.categoria,
+      estado: item.estado,
+      localizacao: item.localizacao,
+      valor: item.valor,
+    })),
   }));
 }
 
@@ -104,20 +68,17 @@ const RevisaoLotes = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const classificationResult = location.state?.classificationResult;
+  const classificationResult: ClassificationResult | undefined = location.state?.classificationResult;
   const fileName = location.state?.fileName ?? "arquivo.csv";
 
-  const bensExtraidos = useMemo(
-    () => (classificationResult ? extrairBens(classificationResult.dadosClassificados) : []),
-    [classificationResult]
+  const [lotes, setLotes] = useState<LoteRevisao[]>(() =>
+    classificationResult ? buildLotesFromResult(classificationResult.lotes) : []
   );
-
-  const [lotes, setLotes] = useState<LoteRevisao[]>(() => agruparEmLotes(bensExtraidos));
   const [saving, setSaving] = useState(false);
   const [movingItem, setMovingItem] = useState<{ bemId: string; fromLoteId: string } | null>(null);
   const [novaCategoria, setNovaCategoria] = useState("");
 
-  if (!classificationResult) {
+  if (!classificationResult || classificationResult.lotes.length === 0) {
     return (
       <div className="max-w-3xl mx-auto text-center py-20 space-y-4">
         <Package className="w-12 h-12 text-muted-foreground mx-auto" />
@@ -136,7 +97,7 @@ const RevisaoLotes = () => {
 
   const totalBens = lotes.reduce((s, l) => s + l.itens.length, 0);
   const totalValor = lotes.reduce(
-    (s, l) => s + l.itens.reduce((v, b) => v + b.valorEstimado, 0),
+    (s, l) => s + l.itens.reduce((v, b) => v + b.valor, 0),
     0
   );
 
@@ -199,7 +160,6 @@ const RevisaoLotes = () => {
 
     setSaving(true);
     try {
-      // 1. Create processo
       const { data: processo, error: procErr } = await supabase
         .from("processos")
         .insert({
@@ -216,7 +176,6 @@ const RevisaoLotes = () => {
 
       if (procErr) throw procErr;
 
-      // 2. Insert all bens
       const bensToInsert = lotesComItens.flatMap((l) =>
         l.itens.map((b) => ({
           processo_id: processo.id,
@@ -225,7 +184,7 @@ const RevisaoLotes = () => {
           categoria: b.categoria,
           estado: b.estado,
           localizacao: b.localizacao,
-          valor_estimado: b.valorEstimado,
+          valor_estimado: b.valor,
         }))
       );
 
@@ -236,10 +195,9 @@ const RevisaoLotes = () => {
 
       if (bensErr) throw bensErr;
 
-      // 3. Insert lotes and lotes_bens
       let bemIdx = 0;
       for (const lote of lotesComItens) {
-        const precoSugerido = lote.itens.reduce((s, b) => s + b.valorEstimado, 0);
+        const precoSugerido = lote.itens.reduce((s, b) => s + b.valor, 0);
         const { data: loteInserted, error: loteErr } = await supabase
           .from("lotes")
           .insert({
@@ -257,7 +215,7 @@ const RevisaoLotes = () => {
 
         const links = lote.itens.map((_, i) => ({
           lote_id: loteInserted.id,
-          bem_id: bensInserted[bemIdx + i].id,
+          bem_id: bensInserted![bemIdx + i].id,
         }));
         bemIdx += lote.itens.length;
 
@@ -277,7 +235,6 @@ const RevisaoLotes = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <Button variant="ghost" size="sm" onClick={() => navigate("/novo-processo")} className="mb-2">
@@ -301,7 +258,6 @@ const RevisaoLotes = () => {
         </Button>
       </div>
 
-      {/* Add new lot */}
       <div className="flex items-center gap-3">
         <Input
           placeholder="Nome da categoria do novo lote..."
@@ -315,10 +271,23 @@ const RevisaoLotes = () => {
         </Button>
       </div>
 
-      {/* Lotes */}
+      {/* Errors/Warnings from classification */}
+      {(classificationResult.errosEncontrados.length > 0 || classificationResult.avisos.length > 0) && (
+        <Card className="border-warning/30">
+          <CardContent className="pt-4 space-y-2">
+            {classificationResult.errosEncontrados.map((e, i) => (
+              <p key={i} className="text-xs text-destructive">⚠ {e}</p>
+            ))}
+            {classificationResult.avisos.map((a, i) => (
+              <p key={i} className="text-xs text-warning">ℹ {a}</p>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       <div className="space-y-4">
         {lotes.map((lote) => {
-          const precoLote = lote.itens.reduce((s, b) => s + b.valorEstimado, 0);
+          const precoLote = lote.itens.reduce((s, b) => s + b.valor, 0);
           return (
             <Card key={lote.id} className="border-border">
               <CardHeader className="pb-3">
@@ -372,7 +341,7 @@ const RevisaoLotes = () => {
                           </p>
                         </div>
                         <span className="text-sm font-medium text-foreground shrink-0">
-                          R$ {bem.valorEstimado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          R$ {bem.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </span>
                         {movingItem?.bemId === bem.id ? (
                           <Select

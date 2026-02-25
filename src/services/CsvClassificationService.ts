@@ -1,12 +1,30 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export interface LoteItem {
+  linha: number;
+  tombamento: string;
+  descricao: string;
+  categoria: string;
+  estado: string;
+  localizacao: string;
+  valor: number;
+}
+
+export interface LoteClassificado {
+  categoria: string;
+  quantidadeItens: number;
+  valorTotal: number;
+  itens: LoteItem[];
+}
+
 export interface ClassificationResult {
-  dadosClassificados: Record<string, unknown>[];
+  lotes: LoteClassificado[];
   errosEncontrados: string[];
   avisos: string[];
   sugestoes: string[];
   totalRegistros: number;
   totalErros: number;
+  totalLotes: number;
 }
 
 function parseCsv(text: string): Record<string, string>[] {
@@ -31,12 +49,13 @@ export const CsvClassificationService = {
 
     if (rows.length === 0) {
       return {
-        dadosClassificados: [],
+        lotes: [],
         errosEncontrados: ["Arquivo CSV vazio ou sem dados válidos."],
         avisos: [],
         sugestoes: [],
         totalRegistros: 0,
         totalErros: 1,
+        totalLotes: 0,
       };
     }
 
@@ -56,12 +75,13 @@ export const CsvClassificationService = {
     console.log("Resultado IA:", data);
 
     return {
-      dadosClassificados: data.dadosClassificados ?? [],
+      lotes: data.lotes ?? [],
       errosEncontrados: data.errosEncontrados ?? [],
       avisos: data.avisos ?? [],
       sugestoes: data.sugestoes ?? [],
       totalRegistros: data.totalRegistros ?? rows.length,
       totalErros: data.totalErros ?? 0,
+      totalLotes: data.totalLotes ?? (data.lotes?.length ?? 0),
     };
   },
 };

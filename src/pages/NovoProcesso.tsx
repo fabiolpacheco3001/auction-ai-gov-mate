@@ -176,7 +176,7 @@ const NovoProcesso = () => {
             Processamento Concluído!
           </h3>
           <p className="text-muted-foreground text-sm mb-2">
-            <strong className="text-foreground">{classificationResult?.totalRegistros ?? 12} bens</strong> identificados · <strong className="text-foreground">4 lotes</strong> formados · Arquivo: {file.name}
+            <strong className="text-foreground">{classificationResult?.totalRegistros ?? 0} bens</strong> identificados · <strong className="text-foreground">{classificationResult?.totalLotes ?? 0} lotes</strong> formados · Arquivo: {file.name}
           </p>
 
           {classificationResult && (classificationResult.errosEncontrados.length > 0 || classificationResult.avisos.length > 0) && (
@@ -211,7 +211,9 @@ const NovoProcesso = () => {
           )}
 
           <p className="text-muted-foreground text-sm mb-6">
-            Arrecadação estimada: <strong className="text-success">R$ 20.655,00</strong>
+            Arrecadação estimada: <strong className="text-success">
+              R$ {(classificationResult?.lotes?.reduce((s, l) => s + (l.valorTotal ?? 0), 0) ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            </strong>
           </p>
           <Button
             onClick={() => navigate("/revisao-lotes", { state: { classificationResult, fileName: file?.name } })}

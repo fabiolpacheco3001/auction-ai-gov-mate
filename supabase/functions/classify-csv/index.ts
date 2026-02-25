@@ -31,26 +31,43 @@ ${JSON.stringify(dadosCsv, null, 2)}
 INSTRUÇÕES:
 Analise os dados e aplique exatamente as regras definidas no prompt do usuário.
 
-Retorne APENAS um JSON válido no seguinte formato, sem nenhum texto adicional fora do JSON:
+Retorne APENAS um JSON válido no seguinte formato:
 
 {
-  "dadosClassificados": [],
+  "lotes": [
+    {
+      "categoria": string,
+      "quantidadeItens": number,
+      "valorTotal": number,
+      "itens": [
+        {
+          "linha": number,
+          "tombamento": string,
+          "descricao": string,
+          "categoria": string,
+          "estado": string,
+          "localizacao": string,
+          "valor": number
+        }
+      ]
+    }
+  ],
   "errosEncontrados": [],
   "avisos": [],
   "sugestoes": [],
   "totalRegistros": number,
-  "totalErros": number
+  "totalErros": number,
+  "totalLotes": number
 }
 
-Onde:
-- dadosClassificados: array com cada registro do CSV enriquecido com campos de classificação adicionados pela IA
-- errosEncontrados: array de strings descrevendo erros encontrados (ex: "Linha 2: Categoria inválida")
-- avisos: array de strings com avisos relevantes
-- sugestoes: array de strings com sugestões de correção
-- totalRegistros: número total de registros processados
-- totalErros: número total de erros encontrados
-
-Não retorne texto fora do JSON.`;
+INSTRUÇÕES OBRIGATÓRIAS:
+- Agrupe todos os registros por categoria
+- Cada categoria deve se tornar um lote
+- Cada lote deve conter todos os itens daquela categoria
+- Calcule quantidadeItens e valorTotal corretamente
+- Use o promptConfigurado como regra principal de classificação
+- Retorne somente JSON válido
+- Não retorne explicações`;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -66,7 +83,7 @@ Não retorne texto fora do JSON.`;
             {
               role: "system",
               content:
-                "Você é um especialista em validação e classificação de dados de bens patrimoniais a partir de arquivos CSV. Sempre responda APENAS com JSON válido, sem markdown, sem blocos de código, sem texto adicional.",
+                "Você é um especialista em classificação e agrupamento de bens patrimoniais.\n\nSua tarefa é:\n1. Classificar os itens conforme o prompt do usuário\n2. Agrupar os itens por categoria\n3. Criar um lote para cada categoria\n4. Retornar os dados estruturados em formato de lotes\n\nResponda APENAS com JSON válido.",
             },
             { role: "user", content: userMessage },
           ],
@@ -97,10 +114,8 @@ Não retorne texto fora do JSON.`;
 
     console.log("Resultado IA (raw):", content);
 
-    // Parse the JSON from the AI response
     let resultado;
     try {
-      // Try to extract JSON from potential markdown code blocks
       const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
       const jsonStr = jsonMatch ? jsonMatch[1].trim() : content.trim();
       resultado = JSON.parse(jsonStr);
