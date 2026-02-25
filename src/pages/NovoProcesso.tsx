@@ -14,13 +14,15 @@ const generateTemplateCSV = () => {
     "Categoria (veiculos/eletronicos/moveis/maquinario/outros)",
     "Estado de Conservação (bom/regular/ruim/inservivel)",
     "Localização",
+    "Município",
+    "Quantidade",
     "Valor Estimado (R$)",
   ];
   const exampleRows = [
-    ["VEI-2010-001", "Fiat Uno 2010 - Placa ABC-1234", "veiculos", "inservivel", "Garagem Central", "4500,00"],
-    ["ELE-2015-044", "Computador Desktop Dell OptiPlex 7010", "eletronicos", "ruim", "Almoxarifado TI", "150,00"],
-    ["MOV-2010-201", "Mesa de escritório em MDF 1.20m", "moveis", "ruim", "Depósito Sede", "45,00"],
-    ["MAQ-2009-010", "Compressor de ar industrial 200L", "maquinario", "inservivel", "Galpão Manutenção", "800,00"],
+    ["VEI-2010-001", "Fiat Uno 2010 - Placa ABC-1234", "veiculos", "inservivel", "Garagem Central", "São Paulo", "1", "4500,00"],
+    ["ELE-2015-044", "Computador Desktop Dell OptiPlex 7010", "eletronicos", "ruim", "Almoxarifado TI", "Campinas", "3", "150,00"],
+    ["MOV-2010-201", "Mesa de escritório em MDF 1.20m", "moveis", "ruim", "Depósito Sede", "Curitiba", "5", "45,00"],
+    ["MAQ-2009-010", "Compressor de ar industrial 200L", "maquinario", "inservivel", "Galpão Manutenção", "Belo Horizonte", "1", "800,00"],
   ];
   const csv = BOM + [headers, ...exampleRows].map(row => row.map(cell => `"${cell}"`).join(";")).join("\r\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });

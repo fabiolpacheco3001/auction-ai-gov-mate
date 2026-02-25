@@ -35,6 +35,8 @@ interface BemRevisao {
   categoria: string;
   estado: string;
   localizacao: string;
+  municipio: string;
+  quantidade: number;
   valor: number;
 }
 
@@ -58,6 +60,8 @@ function buildLotesFromResult(lotes: LoteClassificado[]): LoteRevisao[] {
       categoria: item.categoria,
       estado: item.estado,
       localizacao: item.localizacao,
+      municipio: item.municipio ?? "",
+      quantidade: item.quantidade ?? 1,
       valor: item.valor,
     })),
   }));
@@ -184,6 +188,8 @@ const RevisaoLotes = () => {
           categoria: b.categoria,
           estado: b.estado,
           localizacao: b.localizacao,
+          municipio: b.municipio,
+          quantidade: b.quantidade,
           valor_estimado: b.valor,
         }))
       );
@@ -337,7 +343,7 @@ const RevisaoLotes = () => {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">{bem.descricao}</p>
                           <p className="text-xs text-muted-foreground">
-                            {bem.tombamento} · {bem.localizacao} · {bem.estado}
+                            {bem.tombamento} · {bem.localizacao} · {bem.municipio && `${bem.municipio} · `}{bem.estado} · Qtd: {bem.quantidade}
                           </p>
                         </div>
                         <span className="text-sm font-medium text-foreground shrink-0">

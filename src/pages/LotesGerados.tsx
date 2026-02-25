@@ -44,6 +44,8 @@ interface Bem {
   categoria: string;
   estado: string;
   localizacao: string;
+  municipio: string;
+  quantidade: number;
   tombamento: string;
   valor_estimado: number;
 }
@@ -83,6 +85,8 @@ const LotesGerados = () => {
           bens = (bensData ?? []).map((b) => ({
             ...b,
             valor_estimado: Number(b.valor_estimado),
+            quantidade: Number((b as any).quantidade ?? 1),
+            municipio: (b as any).municipio ?? "",
           }));
         }
         result.push({
@@ -234,19 +238,22 @@ const LotesGerados = () => {
                 <div className="border-t border-border">
                   <table className="w-full">
                     <thead>
-                      <tr className="bg-muted/30">
-                        <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Tombamento</th>
-                        <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Descrição</th>
-                        <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Estado</th>
-                        <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Localização</th>
-                        <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Valor Est.</th>
-                      </tr>
+                       <tr className="bg-muted/30">
+                         <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Tombamento</th>
+                         <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Descrição</th>
+                         <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Qtd</th>
+                         <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Estado</th>
+                         <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Localização</th>
+                         <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Município</th>
+                         <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Valor Est.</th>
+                       </tr>
                     </thead>
                     <tbody>
                       {lote.bens.map((item) => (
                         <tr key={item.id} className="border-t border-border/30 hover:bg-muted/20 transition-colors">
                           <td className="px-5 py-2.5 text-sm font-mono text-muted-foreground">{item.tombamento}</td>
                           <td className="px-5 py-2.5 text-sm text-foreground">{item.descricao}</td>
+                          <td className="px-5 py-2.5 text-sm text-center text-foreground">{item.quantidade}</td>
                           <td className="px-5 py-2.5 text-center">
                             <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full",
                               item.estado === "bom" ? "bg-success/10 text-success" :
@@ -258,6 +265,7 @@ const LotesGerados = () => {
                             </span>
                           </td>
                           <td className="px-5 py-2.5 text-sm text-muted-foreground">{item.localizacao}</td>
+                          <td className="px-5 py-2.5 text-sm text-muted-foreground">{item.municipio}</td>
                           <td className="px-5 py-2.5 text-sm text-right font-medium text-foreground">
                             {item.valor_estimado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                           </td>
