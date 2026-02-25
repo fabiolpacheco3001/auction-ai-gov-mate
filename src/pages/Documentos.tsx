@@ -102,9 +102,7 @@ const Documentos = () => {
                       <p className="text-sm font-medium text-foreground">{doc.nome}</p>
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        Geração: {doc.data}
-                        <Clock className="w-3 h-3" />
-                        Aprovação: {doc.created_at}
+                        {doc.data}
                       </p>
                     </div>
                   </div>
