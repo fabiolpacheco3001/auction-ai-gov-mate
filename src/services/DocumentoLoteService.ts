@@ -161,36 +161,58 @@ export function downloadPdf(processoTitulo: string, lotes: LoteComBens[]) {
 
 export function downloadXlsx(processoTitulo: string, lotes: LoteComBens[]) {
   const wb = XLSX.utils.book_new();
+  const totalAprovado = lotes.reduce((s, l) => s + (l.preco_aprovado ?? l.preco_sugerido), 0);
 
-  // Summary sheet
-  const summaryData = lotes.map((l) => ({
-    "Lote": l.numero,
-    "Categoria": l.categoria,
-    "Qtd Itens": l.bens.length,
-    "Preço Sugerido": l.preco_sugerido,
-    "Preço Aprovado": l.preco_aprovado ?? l.preco_sugerido,
-    "Locais de Retirada": [...new Set(l.bens.map((b) => `${b.localizacao}${b.municipio ? ` - ${b.municipio}` : ""}`).filter(Boolean))].join("; "),
-  }));
-  const wsSummary = XLSX.utils.json_to_sheet(summaryData);
-  XLSX.utils.book_append_sheet(wb, wsSummary, "Resumo");
+  // Build rows matching PDF layout
+  const rows: (string | number)[][] = [];
 
-  // Detail sheet with all items
-  const detailData = lotes.flatMap((l) =>
-    l.bens.map((item) => ({
-      "Lote": l.numero,
-      "Categoria": l.categoria,
-      "Tombamento": item.tombamento || "—",
-      "Descrição": item.descricao,
-      "Quantidade": item.quantidade,
-      "Estado": estadoLabels[item.estado] ?? item.estado,
-      "Localização": item.localizacao,
-      "Município": item.municipio,
-      "Valor Estimado": item.valor_estimado,
-    }))
-  );
-  const wsDetail = XLSX.utils.json_to_sheet(detailData);
-  XLSX.utils.book_append_sheet(wb, wsDetail, "Itens");
+  // Header section (mirrors PDF header)
+  rows.push(["DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO"]);
+  rows.push([]);
+  rows.push(["Processo:", processoTitulo]);
+  rows.push(["Data de Geração:", new Date().toLocaleDateString("pt-BR")]);
+  rows.push(["Total de Lotes:", lotes.length]);
+  rows.push(["Valor Total Aprovado:", currency(totalAprovado)]);
+  rows.push([]);
 
+  for (const lote of lotes) {
+    // Lote header (mirrors PDF per-lot header)
+    rows.push([`Lote ${String(lote.numero).padStart(3, "0")} — ${lote.categoria}`]);
+    rows.push(["Valor Aprovado:", currency(lote.preco_aprovado ?? lote.preco_sugerido), "", "Itens:", lote.bens.length]);
+
+    const locations = [...new Set(lote.bens.map((b) => `${b.localizacao}${b.municipio ? ` - ${b.municipio}` : ""}`).filter(Boolean))];
+    if (locations.length > 0) {
+      rows.push(["Local(is) de Retirada:", locations.join("; ")]);
+    }
+
+    // Item table header (mirrors PDF table)
+    rows.push(["Tombamento", "Descrição", "Qtd", "Estado", "Valor Est."]);
+
+    for (const item of lote.bens) {
+      rows.push([
+        item.tombamento || "—",
+        item.descricao || "—",
+        item.quantidade,
+        estadoLabels[item.estado] ?? item.estado,
+        currency(item.valor_estimado),
+      ]);
+    }
+
+    rows.push([]); // spacing between lots
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+
+  // Set column widths similar to PDF proportions
+  ws["!cols"] = [
+    { wch: 20 }, // Tombamento
+    { wch: 45 }, // Descrição
+    { wch: 8 },  // Qtd
+    { wch: 14 }, // Estado
+    { wch: 16 }, // Valor Est.
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, "Composição de Lotes");
   XLSX.writeFile(wb, `composicao-lotes-${processoTitulo.replace(/\s+/g, "-").toLowerCase()}.xlsx`);
 }
 
