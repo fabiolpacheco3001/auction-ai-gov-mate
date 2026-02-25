@@ -21,7 +21,7 @@ const Documentos = () => {
   const { data: documentos = [] } = useQuery({
     queryKey: ["documentos"],
     queryFn: async () => {
-      const { data } = await supabase.from("documentos").select("*").order("data", { ascending: false });
+      const { data } = await supabase.from("documentos").select("*").order("created_at", { ascending: false });
       return data ?? [];
     },
   });
