@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { ClassificationResult, LoteClassificado } from "@/services/CsvClassificationService";
+import type { ClassificationResult, LoteClassificado, Precificacao } from "@/services/CsvClassificationService";
 
 interface BemRevisao {
   id: string;
@@ -38,6 +38,7 @@ interface BemRevisao {
   municipio: string;
   quantidade: number;
   valor: number;
+  precificacao?: Precificacao;
 }
 
 interface LoteRevisao {
@@ -63,6 +64,7 @@ function buildLotesFromResult(lotes: LoteClassificado[]): LoteRevisao[] {
       municipio: item.municipio ?? "",
       quantidade: item.quantidade ?? 1,
       valor: item.valor,
+      precificacao: item.precificacao,
     })),
   }));
 }
@@ -181,17 +183,37 @@ const RevisaoLotes = () => {
       if (procErr) throw procErr;
 
       const bensToInsert = lotesComItens.flatMap((l) =>
-        l.itens.map((b) => ({
-          processo_id: processo.id,
-          tombamento: b.tombamento,
-          descricao: b.descricao,
-          categoria: b.categoria,
-          estado: b.estado,
-          localizacao: b.localizacao,
-          municipio: b.municipio,
-          quantidade: b.quantidade,
-          valor_estimado: b.valor,
-        }))
+        l.itens.map((b) => {
+          const sites = b.precificacao?.valorMedioPorSite ?? [];
+          const site1 = sites[0]?.valorMedio ?? null;
+          const site2 = sites[1]?.valorMedio ?? null;
+          const site3 = sites[2]?.valorMedio ?? null;
+
+          // Calculate valor_sugerido as average of available values
+          const valoresDisponiveis = [b.valor, site1, site2, site3].filter(
+            (v): v is number => v !== null && v !== undefined && v > 0
+          );
+          const valorSugerido =
+            valoresDisponiveis.length > 0
+              ? valoresDisponiveis.reduce((a, c) => a + c, 0) / valoresDisponiveis.length
+              : null;
+
+          return {
+            processo_id: processo.id,
+            tombamento: b.tombamento,
+            descricao: b.descricao,
+            categoria: b.categoria,
+            estado: b.estado,
+            localizacao: b.localizacao,
+            municipio: b.municipio,
+            quantidade: b.quantidade,
+            valor_estimado: b.valor,
+            valor_medio_site1: site1,
+            valor_medio_site2: site2,
+            valor_medio_site3: site3,
+            valor_sugerido: valorSugerido,
+          };
+        })
       );
 
       const { data: bensInserted, error: bensErr } = await supabase
@@ -203,7 +225,19 @@ const RevisaoLotes = () => {
 
       let bemIdx = 0;
       for (const lote of lotesComItens) {
-        const precoSugerido = lote.itens.reduce((s, b) => s + b.valor, 0);
+        const precoSugerido = lote.itens.reduce((s, b) => {
+          const sites = b.precificacao?.valorMedioPorSite ?? [];
+          const site1 = sites[0]?.valorMedio ?? null;
+          const site2 = sites[1]?.valorMedio ?? null;
+          const site3 = sites[2]?.valorMedio ?? null;
+          const valoresDisponiveis = [b.valor, site1, site2, site3].filter(
+            (v): v is number => v !== null && v !== undefined && v > 0
+          );
+          const vs = valoresDisponiveis.length > 0
+            ? valoresDisponiveis.reduce((a, c) => a + c, 0) / valoresDisponiveis.length
+            : b.valor;
+          return s + b.quantidade * vs;
+        }, 0);
         const { data: loteInserted, error: loteErr } = await supabase
           .from("lotes")
           .insert({
