@@ -1,4 +1,5 @@
 import { FileText, FileDown, FileCheck, Clock, Filter } from "lucide-react";
+import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -102,7 +103,7 @@ const Documentos = () => {
                       <p className="text-sm font-medium text-foreground">{doc.nome}</p>
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {doc.data}
+                        {format(parseISO(doc.data), "dd/MM/yyyy")}
                       </p>
                     </div>
                   </div>
