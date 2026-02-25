@@ -106,11 +106,41 @@ async function fetchLogoUrl(): Promise<string | null> {
   return (data as any)?.logo_url ?? null;
 }
 
-// ── Load image as base64 data URL for embedding
+// ── Load image as base64 data URL for embedding (converts SVG to PNG via canvas)
 async function loadImageAsBase64(url: string): Promise<string | null> {
   try {
     const response = await fetch(url);
     const blob = await response.blob();
+    const isSvg = blob.type === "image/svg+xml" || url.toLowerCase().endsWith(".svg");
+
+    if (isSvg) {
+      // Convert SVG to PNG using canvas
+      const svgText = await blob.text();
+      const svgBlob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+      const svgUrl = URL.createObjectURL(svgBlob);
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const scale = 2; // higher quality
+          canvas.width = img.width * scale || 400;
+          canvas.height = img.height * scale || 100;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.scale(scale, scale);
+            ctx.drawImage(img, 0, 0, img.width || 200, img.height || 50);
+          }
+          URL.revokeObjectURL(svgUrl);
+          resolve(canvas.toDataURL("image/png"));
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(svgUrl);
+          resolve(null);
+        };
+        img.src = svgUrl;
+      });
+    }
+
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
