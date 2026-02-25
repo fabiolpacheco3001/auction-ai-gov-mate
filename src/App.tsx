@@ -9,6 +9,7 @@ import NovoProcesso from "@/pages/NovoProcesso";
 import LotesGerados from "@/pages/LotesGerados";
 import Documentos from "@/pages/Documentos";
 import Relatorios from "@/pages/Relatorios";
+import ConfiguracaoClassificacaoCsv from "@/pages/ConfiguracaoClassificacaoCsv";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/lotes" element={<LotesGerados />} />
             <Route path="/documentos" element={<Documentos />} />
             <Route path="/relatorios" element={<Relatorios />} />
+            <Route path="/configuracoes/classificacao-csv" element={<ConfiguracaoClassificacaoCsv />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
