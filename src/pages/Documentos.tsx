@@ -42,7 +42,7 @@ const Documentos = () => {
       if (format === "pdf") {
         downloadPdf(doc.processo_titulo, lotes);
       } else {
-        downloadXlsx(doc.processo_titulo, lotes);
+        await downloadXlsx(doc.processo_titulo, lotes);
       }
       toast.success(`Documento ${format.toUpperCase()} gerado com sucesso!`);
     } catch (err) {

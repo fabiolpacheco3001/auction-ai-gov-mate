@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 export interface Bem {
   id: string;
@@ -159,61 +159,109 @@ export function downloadPdf(processoTitulo: string, lotes: LoteComBens[]) {
 
 // ───── XLSX Generation ─────
 
-export function downloadXlsx(processoTitulo: string, lotes: LoteComBens[]) {
-  const wb = XLSX.utils.book_new();
+export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[]) {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Composição de Lotes");
   const totalAprovado = lotes.reduce((s, l) => s + (l.preco_aprovado ?? l.preco_sugerido), 0);
 
-  // Build rows matching PDF layout
-  const rows: (string | number)[][] = [];
+  // Column widths
+  ws.columns = [
+    { width: 22 },
+    { width: 48 },
+    { width: 10 },
+    { width: 16 },
+    { width: 18 },
+  ];
 
-  // Header section (mirrors PDF header)
-  rows.push(["DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO"]);
-  rows.push([]);
-  rows.push(["Processo:", processoTitulo]);
-  rows.push(["Data de Geração:", new Date().toLocaleDateString("pt-BR")]);
-  rows.push(["Total de Lotes:", lotes.length]);
-  rows.push(["Valor Total Aprovado:", currency(totalAprovado)]);
-  rows.push([]);
+  const headerFill: ExcelJS.FillPattern = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2980B9" } };
+  const headerFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
+  const boldFont: Partial<ExcelJS.Font> = { bold: true, size: 10 };
+  const titleFont: Partial<ExcelJS.Font> = { bold: true, size: 14 };
+  const loteFont: Partial<ExcelJS.Font> = { bold: true, size: 12 };
+  const thinBorder: Partial<ExcelJS.Borders> = {
+    top: { style: "thin" },
+    left: { style: "thin" },
+    bottom: { style: "thin" },
+    right: { style: "thin" },
+  };
 
+  // ── Document title
+  const titleRow = ws.addRow(["DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO"]);
+  titleRow.getCell(1).font = titleFont;
+  ws.mergeCells(titleRow.number, 1, titleRow.number, 5);
+  ws.addRow([]);
+
+  // ── Header info
+  const infoRows = [
+    ["Processo:", processoTitulo],
+    ["Data de Geração:", new Date().toLocaleDateString("pt-BR")],
+    ["Total de Lotes:", String(lotes.length)],
+    ["Valor Total Aprovado:", currency(totalAprovado)],
+  ];
+  for (const r of infoRows) {
+    const row = ws.addRow(r);
+    row.getCell(1).font = boldFont;
+  }
+  ws.addRow([]);
+
+  // ── Per-lot sections
   for (const lote of lotes) {
-    // Lote header (mirrors PDF per-lot header)
-    rows.push([`Lote ${String(lote.numero).padStart(3, "0")} — ${lote.categoria}`]);
-    rows.push(["Valor Aprovado:", currency(lote.preco_aprovado ?? lote.preco_sugerido), "", "Itens:", lote.bens.length]);
+    // Lote header
+    const loteRow = ws.addRow([`Lote ${String(lote.numero).padStart(3, "0")} — ${lote.categoria}`]);
+    loteRow.getCell(1).font = loteFont;
+    ws.mergeCells(loteRow.number, 1, loteRow.number, 5);
+    const loteHeaderBg: ExcelJS.FillPattern = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE8F0FE" } };
+    for (let c = 1; c <= 5; c++) loteRow.getCell(c).fill = loteHeaderBg;
+
+    // Lote info
+    const valRow = ws.addRow(["Valor Aprovado:", currency(lote.preco_aprovado ?? lote.preco_sugerido), "", "Itens:", String(lote.bens.length)]);
+    valRow.getCell(1).font = boldFont;
+    valRow.getCell(4).font = boldFont;
 
     const locations = [...new Set(lote.bens.map((b) => `${b.localizacao}${b.municipio ? ` - ${b.municipio}` : ""}`).filter(Boolean))];
     if (locations.length > 0) {
-      rows.push(["Local(is) de Retirada:", locations.join("; ")]);
+      const locRow = ws.addRow(["Local(is) de Retirada:", locations.join("; ")]);
+      locRow.getCell(1).font = boldFont;
     }
 
-    // Item table header (mirrors PDF table)
-    rows.push(["Tombamento", "Descrição", "Qtd", "Estado", "Valor Est."]);
+    // Table header
+    const thRow = ws.addRow(["Tombamento", "Descrição", "Qtd", "Estado", "Valor Est."]);
+    for (let c = 1; c <= 5; c++) {
+      const cell = thRow.getCell(c);
+      cell.fill = headerFill;
+      cell.font = headerFont;
+      cell.border = thinBorder;
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+    }
 
+    // Table body
     for (const item of lote.bens) {
-      rows.push([
+      const dr = ws.addRow([
         item.tombamento || "—",
         item.descricao || "—",
         item.quantidade,
         estadoLabels[item.estado] ?? item.estado,
         currency(item.valor_estimado),
       ]);
+      for (let c = 1; c <= 5; c++) {
+        dr.getCell(c).border = thinBorder;
+      }
+      dr.getCell(3).alignment = { horizontal: "center" };
+      dr.getCell(5).alignment = { horizontal: "right" };
     }
 
-    rows.push([]); // spacing between lots
+    ws.addRow([]); // spacing
   }
 
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-
-  // Set column widths similar to PDF proportions
-  ws["!cols"] = [
-    { wch: 20 }, // Tombamento
-    { wch: 45 }, // Descrição
-    { wch: 8 },  // Qtd
-    { wch: 14 }, // Estado
-    { wch: 16 }, // Valor Est.
-  ];
-
-  XLSX.utils.book_append_sheet(wb, ws, "Composição de Lotes");
-  XLSX.writeFile(wb, `composicao-lotes-${processoTitulo.replace(/\s+/g, "-").toLowerCase()}.xlsx`);
+  // Download
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `composicao-lotes-${processoTitulo.replace(/\s+/g, "-").toLowerCase()}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ───── Legacy TXT (kept for backwards compat) ─────
