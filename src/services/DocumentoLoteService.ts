@@ -264,6 +264,123 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
   URL.revokeObjectURL(url);
 }
 
+// ───── DOCX Generation ─────
+
+export async function downloadDocx(processoTitulo: string, lotes: LoteComBens[]) {
+  const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, BorderStyle, ShadingType, HeadingLevel } = await import("docx");
+
+  const totalAprovado = lotes.reduce((s, l) => s + (l.preco_aprovado ?? l.preco_sugerido), 0);
+
+  const children: any[] = [];
+
+  // Title
+  children.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 300 },
+    children: [new TextRun({ text: "DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO", bold: true, size: 32 })],
+  }));
+
+  // Header info
+  const infoLines = [
+    `Processo: ${processoTitulo}`,
+    `Data de Geração: ${new Date().toLocaleDateString("pt-BR")}`,
+    `Total de Lotes: ${lotes.length}`,
+    `Valor Total Aprovado: ${currency(totalAprovado)}`,
+  ];
+  for (const line of infoLines) {
+    const [label, ...rest] = line.split(": ");
+    children.push(new Paragraph({
+      spacing: { after: 40 },
+      children: [
+        new TextRun({ text: `${label}: `, bold: true, size: 20 }),
+        new TextRun({ text: rest.join(": "), size: 20 }),
+      ],
+    }));
+  }
+
+  children.push(new Paragraph({ spacing: { after: 200 }, children: [] }));
+
+  const borderStyle = { style: BorderStyle.SINGLE, size: 1, color: "999999" };
+  const cellBorders = { top: borderStyle, bottom: borderStyle, left: borderStyle, right: borderStyle };
+
+  for (const lote of lotes) {
+    // Lote header
+    children.push(new Paragraph({
+      spacing: { before: 300, after: 100 },
+      shading: { type: ShadingType.SOLID, color: "E8F0FE" },
+      children: [new TextRun({ text: `Lote ${String(lote.numero).padStart(3, "0")} — ${lote.categoria}`, bold: true, size: 24 })],
+    }));
+
+    children.push(new Paragraph({
+      spacing: { after: 40 },
+      children: [
+        new TextRun({ text: "Valor Aprovado: ", bold: true, size: 20 }),
+        new TextRun({ text: currency(lote.preco_aprovado ?? lote.preco_sugerido), size: 20 }),
+        new TextRun({ text: "    Itens: ", bold: true, size: 20 }),
+        new TextRun({ text: String(lote.bens.length), size: 20 }),
+      ],
+    }));
+
+    const locations = [...new Set(lote.bens.map((b) => `${b.localizacao}${b.municipio ? ` - ${b.municipio}` : ""}`).filter(Boolean))];
+    if (locations.length > 0) {
+      children.push(new Paragraph({
+        spacing: { after: 80 },
+        children: [
+          new TextRun({ text: "Local(is) de Retirada: ", bold: true, size: 20 }),
+          new TextRun({ text: locations.join("; "), size: 20 }),
+        ],
+      }));
+    }
+
+    // Table
+    const headerCells = ["Tombamento", "Descrição", "Qtd", "Estado", "Valor Est."].map(
+      (h) => new TableCell({
+        shading: { type: ShadingType.SOLID, color: "2980B9" },
+        borders: cellBorders,
+        children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: h, bold: true, color: "FFFFFF", size: 18 })] })],
+      })
+    );
+
+    const dataRows = lote.bens.map((item) => {
+      const vals = [
+        item.tombamento || "—",
+        item.descricao || "—",
+        String(item.quantidade),
+        estadoLabels[item.estado] ?? item.estado,
+        currency(item.valor_estimado),
+      ];
+      return new TableRow({
+        children: vals.map((v, i) => new TableCell({
+          borders: cellBorders,
+          children: [new Paragraph({
+            alignment: i === 2 ? AlignmentType.CENTER : i === 4 ? AlignmentType.RIGHT : AlignmentType.LEFT,
+            children: [new TextRun({ text: v, size: 18 })],
+          })],
+        })),
+      });
+    });
+
+    children.push(new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [new TableRow({ children: headerCells }), ...dataRows],
+    }));
+
+    children.push(new Paragraph({ spacing: { after: 200 }, children: [] }));
+  }
+
+  const doc = new Document({
+    sections: [{ children }],
+  });
+
+  const buffer = await Packer.toBlob(doc);
+  const url = URL.createObjectURL(buffer);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `composicao-lotes-${processoTitulo.replace(/\s+/g, "-").toLowerCase()}.docx`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ───── Legacy TXT (kept for backwards compat) ─────
 
 export function gerarConteudoDocumento(processoTitulo: string, lotes: LoteComBens[]): string {
