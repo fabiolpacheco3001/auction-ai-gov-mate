@@ -34,12 +34,12 @@ serve(async (req) => {
     console.log("Total de registros CSV:", dadosCsv?.length);
     console.log("Sites de precificação encontrados:", sitesPrecificacao?.length ?? 0);
 
-    const userMessage = `PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO (REGRA DE PRIORIDADE MÁXIMA):
+    const userMessage = `PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO também conhecido como promptConfigurado (REGRA DE PRIORIDADE MÁXIMA):
 ${promptConfigurado}
 
 IMPORTANTE — REGRA DE PRIORIDADE ABSOLUTA:
 
-O prompt definido pelo usuário é a fonte principal e soberana para definir:
+O promptConfigurado é a fonte principal e soberana para definir:
 
 - como os itens devem ser classificados
 - como os itens devem ser agrupados em lotes
@@ -52,9 +52,9 @@ Se houver qualquer conflito entre:
 - as instruções abaixo
 - ou qualquer padrão implícito
 
-Você DEVE sempre obedecer exclusivamente o prompt definido pelo usuário.
+Você DEVE sempre obedecer exclusivamente o promptConfigurado.
 
-Nunca substitua, ignore ou complemente as regras do prompt usuário por conta própria.
+Nunca substitua, ignore ou complemente as regras do promptConfigurado por conta própria.
 
 Nunca aplique regras padrão de agrupamento se o promptConfigurado definir regras específicas.
 
