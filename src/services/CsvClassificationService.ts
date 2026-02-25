@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export interface ClassificationResult {
   dadosClassificados: Record<string, unknown>[];
   errosEncontrados: string[];
@@ -20,82 +22,46 @@ function parseCsv(text: string): Record<string, string>[] {
   });
 }
 
-const CATEGORIAS_VALIDAS = ["veiculos", "eletronicos", "moveis", "maquinario", "outros"];
-const ESTADOS_VALIDOS = ["bom", "regular", "ruim", "inservivel"];
-
 export const CsvClassificationService = {
   async classificarCsv(file: File, promptConfigurado: string): Promise<ClassificationResult> {
-    console.log(promptConfigurado);
+    console.log("Prompt usado:", promptConfigurado);
+
     const text = await file.text();
     const rows = parseCsv(text);
 
-    const errosEncontrados: string[] = [];
-    const avisos: string[] = [];
-    const sugestoes: string[] = [];
-    const tombamentos = new Set<string>();
-
-    const dadosClassificados = rows.map((row, idx) => {
-      const lineNum = idx + 2;
-      const tombamento = Object.values(row)[0] || "";
-      const descricao = Object.values(row)[1] || "";
-      const categoria = (Object.values(row)[2] || "").toLowerCase();
-      const estado = (Object.values(row)[3] || "").toLowerCase();
-      const localizacao = Object.values(row)[4] || "";
-      const valorStr = Object.values(row)[5] || "";
-
-      // Validate required fields
-      if (!descricao) errosEncontrados.push(`Linha ${lineNum}: Descrição do bem está vazia.`);
-      if (!localizacao) avisos.push(`Linha ${lineNum}: Localização não informada.`);
-
-      // Validate category
-      const catValida = CATEGORIAS_VALIDAS.includes(categoria);
-      if (!catValida) {
-        errosEncontrados.push(`Linha ${lineNum}: Categoria "${categoria}" inválida.`);
-        sugestoes.push(`Linha ${lineNum}: Use uma das categorias: ${CATEGORIAS_VALIDAS.join(", ")}.`);
-      }
-
-      // Validate state
-      if (!ESTADOS_VALIDOS.includes(estado)) {
-        errosEncontrados.push(`Linha ${lineNum}: Estado "${estado}" inválido.`);
-      }
-
-      // Validate value
-      const valor = parseFloat(valorStr.replace(".", "").replace(",", "."));
-      if (isNaN(valor) || valor <= 0) {
-        avisos.push(`Linha ${lineNum}: Valor estimado inválido ou zerado.`);
-      }
-
-      // Check duplicates
-      if (tombamento) {
-        if (tombamentos.has(tombamento)) {
-          avisos.push(`Linha ${lineNum}: Tombamento "${tombamento}" possivelmente duplicado.`);
-        }
-        tombamentos.add(tombamento);
-      }
-
+    if (rows.length === 0) {
       return {
-        ...row,
-        _categoriaValida: catValida,
-        _estadoValido: ESTADOS_VALIDOS.includes(estado),
-        _valorNumerico: isNaN(valor) ? 0 : valor,
-        _linha: lineNum,
+        dadosClassificados: [],
+        errosEncontrados: ["Arquivo CSV vazio ou sem dados válidos."],
+        avisos: [],
+        sugestoes: [],
+        totalRegistros: 0,
+        totalErros: 1,
       };
-    });
-
-    // Simulate prompt-based processing delay
-    await new Promise((r) => setTimeout(r, 1500));
-
-    if (promptConfigurado.toLowerCase().includes("duplicata")) {
-      // Prompt mentions duplicates — already handled above
     }
 
+    const { data, error } = await supabase.functions.invoke("classify-csv", {
+      body: { promptConfigurado, dadosCsv: rows },
+    });
+
+    if (error) {
+      console.error("Erro ao chamar IA:", error);
+      throw new Error(error.message || "Erro ao classificar CSV com IA.");
+    }
+
+    if (data?.error) {
+      throw new Error(data.error);
+    }
+
+    console.log("Resultado IA:", data);
+
     return {
-      dadosClassificados,
-      errosEncontrados,
-      avisos,
-      sugestoes,
-      totalRegistros: rows.length,
-      totalErros: errosEncontrados.length,
+      dadosClassificados: data.dadosClassificados ?? [],
+      errosEncontrados: data.errosEncontrados ?? [],
+      avisos: data.avisos ?? [],
+      sugestoes: data.sugestoes ?? [],
+      totalRegistros: data.totalRegistros ?? rows.length,
+      totalErros: data.totalErros ?? 0,
     };
   },
 };
