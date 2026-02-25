@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { gerarDocumentoLotes, gerarConteudoDocumento, downloadDocumentoTxt } from "@/services/DocumentoLoteService";
 import {
   Collapsible,
   CollapsibleContent,
@@ -177,12 +178,41 @@ const LotesGerados = () => {
     });
   };
 
+  const checkAndGenerateDocument = async (processoId: string | null) => {
+    if (!processoId) return;
+    // Refetch lotes for this process to check if all approved
+    const { data: lotesProcesso } = await supabase
+      .from("lotes")
+      .select("status")
+      .eq("processo_id", processoId);
+    
+    const allApproved = lotesProcesso && lotesProcesso.length > 0 && lotesProcesso.every((l) => l.status === "aprovado");
+    if (!allApproved) return;
+
+    const group = groups.find((g) => g.processo.id === processoId);
+    if (!group) return;
+
+    try {
+      const result = await gerarDocumentoLotes(processoId, group.processo.titulo);
+      if (result) {
+        const content = gerarConteudoDocumento(group.processo.titulo, result.lotes);
+        downloadDocumentoTxt(content, `composicao-lotes-${group.processo.titulo.replace(/\s+/g, "-").toLowerCase()}.txt`);
+        queryClient.invalidateQueries({ queryKey: ["documentos"] });
+        toast.success("Documento de composição de lotes gerado com sucesso!");
+      }
+    } catch (err) {
+      console.error("Erro ao gerar documento:", err);
+      toast.error("Erro ao gerar documento de lotes.");
+    }
+  };
+
   const aprovarLote = async (id: string) => {
     const lote = allLotes.find((l) => l.id === id);
     if (!lote) return;
     await supabase.from("lotes").update({ status: "aprovado", preco_aprovado: lote.preco_sugerido }).eq("id", id);
     queryClient.invalidateQueries({ queryKey: ["lotes-by-processo"] });
     toast.success("Lote aprovado com sucesso!");
+    await checkAndGenerateDocument(lote.processo_id);
   };
 
   const startEditPrice = (lote: Lote) => {
@@ -200,6 +230,17 @@ const LotesGerados = () => {
     setEditingPrice(null);
   };
 
+  const aprovarTodosProcesso = async (group: ProcessoGroup) => {
+    for (const l of group.lotes) {
+      if (l.status !== "aprovado") {
+        await supabase.from("lotes").update({ status: "aprovado", preco_aprovado: l.preco_sugerido }).eq("id", l.id);
+      }
+    }
+    queryClient.invalidateQueries({ queryKey: ["lotes-by-processo"] });
+    toast.success(`Todos os lotes de "${group.processo.titulo}" aprovados!`);
+    await checkAndGenerateDocument(group.processo.id);
+  };
+
   const aprovarTodos = async () => {
     for (const l of allLotes) {
       if (l.status !== "aprovado") {
@@ -208,6 +249,11 @@ const LotesGerados = () => {
     }
     queryClient.invalidateQueries({ queryKey: ["lotes-by-processo"] });
     toast.success("Todos os lotes aprovados!");
+    // Generate docs for each process
+    const processoIds = [...new Set(allLotes.map((l) => l.processo_id).filter(Boolean))] as string[];
+    for (const pid of processoIds) {
+      await checkAndGenerateDocument(pid);
+    }
   };
 
   const totalEstimado = allLotes.reduce((sum, l) => sum + l.preco_sugerido, 0);
@@ -275,6 +321,16 @@ const LotesGerados = () => {
                     <span className={cn("text-xs px-2 py-0.5 rounded-full", groupApproved === group.lotes.length ? "bg-success/10 text-success" : "bg-warning/10 text-warning")}>
                       {groupApproved}/{group.lotes.length} aprovados
                     </span>
+                    {groupApproved < group.lotes.length && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 text-xs h-7"
+                        onClick={(e) => { e.stopPropagation(); aprovarTodosProcesso(group); }}
+                      >
+                        <CheckCircle2 className="w-3 h-3" /> Aprovar Todos
+                      </Button>
+                    )}
                   </div>
                   {isOpen ? <ChevronUp className="w-5 h-5 text-muted-foreground shrink-0" /> : <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />}
                 </div>
