@@ -47,8 +47,6 @@ function parseCsv(text: string): Record<string, string>[] {
 
 export const CsvClassificationService = {
   async classificarCsv(file: File, promptConfigurado: string): Promise<ClassificationResult> {
-    console.log("Prompt usado:", promptConfigurado);
-
     const text = await file.text();
     const rows = parseCsv(text);
 
@@ -86,7 +84,7 @@ export const CsvClassificationService = {
       sugestoes: data.sugestoes ?? [],
       totalRegistros: data.totalRegistros ?? rows.length,
       totalErros: data.totalErros ?? 0,
-      totalLotes: data.totalLotes ?? (data.lotes?.length ?? 0),
+      totalLotes: data.totalLotes ?? data.lotes?.length ?? 0,
     };
   },
 };
