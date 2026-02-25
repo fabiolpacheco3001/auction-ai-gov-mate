@@ -1,11 +1,11 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export interface ConfiguracaoSistema {
   id: string;
   promptClassificacaoCsv: string;
   dataAtualizacao: string;
   usuarioAtualizacao: string;
 }
-
-const STORAGE_KEY = "configuracao_sistema";
 
 const PROMPT_PADRAO = `Classifique os bens patrimoniais do CSV seguindo estas regras:
 
@@ -20,37 +20,32 @@ const PROMPT_PADRAO = `Classifique os bens patrimoniais do CSV seguindo estas re
 export const ConfiguracaoSistemaService = {
   getPromptPadrao: () => PROMPT_PADRAO,
 
-  salvar(prompt: string): ConfiguracaoSistema {
-    const config: ConfiguracaoSistema = {
-      id: "config-1",
-      promptClassificacaoCsv: prompt,
-      dataAtualizacao: new Date().toISOString(),
-      usuarioAtualizacao: "admin",
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    return config;
+  async salvar(prompt: string): Promise<ConfiguracaoSistema> {
+    const now = new Date().toISOString();
+    await supabase
+      .from("configuracao_sistema")
+      .upsert({ id: "config-1", prompt_classificacao_csv: prompt, data_atualizacao: now, usuario_atualizacao: "admin" });
+    return { id: "config-1", promptClassificacaoCsv: prompt, dataAtualizacao: now, usuarioAtualizacao: "admin" };
   },
 
-  carregar(): ConfiguracaoSistema {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    console.log(raw);
-    if (raw) {
-      try {
-        return JSON.parse(raw);
-      } catch {
-        // fall through
-      }
+  async carregar(): Promise<ConfiguracaoSistema> {
+    const { data } = await supabase
+      .from("configuracao_sistema")
+      .select("*")
+      .eq("id", "config-1")
+      .maybeSingle();
+    if (data) {
+      return {
+        id: data.id,
+        promptClassificacaoCsv: data.prompt_classificacao_csv,
+        dataAtualizacao: data.data_atualizacao,
+        usuarioAtualizacao: data.usuario_atualizacao,
+      };
     }
-    console.log(PROMPT_PADRAO);
-    return {
-      id: "config-1",
-      promptClassificacaoCsv: PROMPT_PADRAO,
-      dataAtualizacao: new Date().toISOString(),
-      usuarioAtualizacao: "sistema",
-    };
+    return { id: "config-1", promptClassificacaoCsv: PROMPT_PADRAO, dataAtualizacao: new Date().toISOString(), usuarioAtualizacao: "sistema" };
   },
 
-  restaurarPadrao(): ConfiguracaoSistema {
+  async restaurarPadrao(): Promise<ConfiguracaoSistema> {
     return this.salvar(PROMPT_PADRAO);
   },
 };
