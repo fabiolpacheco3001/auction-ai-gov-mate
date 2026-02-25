@@ -206,7 +206,7 @@ const RevisaoLotes = () => {
             categoria: lote.categoria,
             preco_sugerido: precoSugerido,
             preco_aprovado: precoSugerido,
-            status: "aprovado",
+            status: "pendente",
           })
           .select("id")
           .single();
@@ -223,7 +223,7 @@ const RevisaoLotes = () => {
         if (linkErr) throw linkErr;
       }
 
-      toast.success("Lotes aprovados e salvos com sucesso!");
+      toast.success("Lotes salvos com sucesso! Aprove-os na tela de Lotes Gerados.");
       navigate("/lotes");
     } catch (err: any) {
       console.error("Erro ao salvar lotes:", err);
@@ -254,7 +254,7 @@ const RevisaoLotes = () => {
           className="bg-success text-success-foreground hover:bg-success/90"
         >
           {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
-          Aprovar e Salvar Lotes
+          Salvar Lotes
         </Button>
       </div>
 
