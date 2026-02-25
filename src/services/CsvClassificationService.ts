@@ -7,6 +7,8 @@ export interface LoteItem {
   categoria: string;
   estado: string;
   localizacao: string;
+  municipio: string;
+  quantidade: number;
   valor: number;
 }
 

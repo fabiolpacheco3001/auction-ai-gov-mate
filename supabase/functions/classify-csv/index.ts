@@ -47,6 +47,8 @@ Retorne APENAS um JSON válido no seguinte formato:
           "categoria": string,
           "estado": string,
           "localizacao": string,
+          "municipio": string,
+          "quantidade": number,
           "valor": number
         }
       ]
@@ -66,6 +68,8 @@ INSTRUÇÕES OBRIGATÓRIAS:
 - Cada lote deve conter todos os itens daquela categoria
 - Calcule quantidadeItens e valorTotal corretamente
 - Use o promptConfigurado como regra principal de classificação
+- O campo "municipio" deve conter o município do item (pode vir do CSV ou ser inferido da localização)
+- O campo "quantidade" deve conter a quantidade do item (padrão 1 se não informado)
 - Retorne somente JSON válido
 - Não retorne explicações`;
 

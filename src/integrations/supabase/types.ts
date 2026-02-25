@@ -22,7 +22,9 @@ export type Database = {
           estado: string
           id: string
           localizacao: string
+          municipio: string
           processo_id: string | null
+          quantidade: number
           tombamento: string
           valor_estimado: number
         }
@@ -33,7 +35,9 @@ export type Database = {
           estado?: string
           id?: string
           localizacao?: string
+          municipio?: string
           processo_id?: string | null
+          quantidade?: number
           tombamento?: string
           valor_estimado?: number
         }
@@ -44,7 +48,9 @@ export type Database = {
           estado?: string
           id?: string
           localizacao?: string
+          municipio?: string
           processo_id?: string | null
+          quantidade?: number
           tombamento?: string
           valor_estimado?: number
         }
