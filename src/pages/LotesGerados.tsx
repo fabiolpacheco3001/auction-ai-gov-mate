@@ -71,6 +71,7 @@ interface Processo {
   id: string;
   titulo: string;
   orgao: string;
+  created_at?: string;
 }
 
 interface ProcessoGroup {
@@ -97,7 +98,7 @@ const LotesGerados = () => {
       // Fetch processos
       let processosMap: Record<string, Processo> = {};
       if (processoIds.length > 0) {
-        const { data: processosData } = await supabase.from("processos").select("id, titulo, orgao").in("id", processoIds);
+        const { data: processosData } = await supabase.from("processos").select("id, titulo, orgao, created_at").in("id", processoIds);
         for (const p of processosData ?? []) {
           processosMap[p.id] = p;
         }
@@ -154,11 +155,17 @@ const LotesGerados = () => {
         }
       }
 
+      const sortedPids = processoIds
+        .filter((pid) => grouped[pid] && processosMap[pid])
+        .sort((a, b) => {
+          const da = processosMap[a]?.created_at ?? "";
+          const db = processosMap[b]?.created_at ?? "";
+          return db.localeCompare(da);
+        });
+
       const result: ProcessoGroup[] = [];
-      for (const pid of processoIds) {
-        if (grouped[pid] && processosMap[pid]) {
-          result.push({ processo: processosMap[pid], lotes: grouped[pid] });
-        }
+      for (const pid of sortedPids) {
+        result.push({ processo: processosMap[pid], lotes: grouped[pid] });
       }
       if (noProcesso.length > 0) {
         result.push({ processo: { id: "__sem_processo__", titulo: "Sem Processo", orgao: "" }, lotes: noProcesso });
