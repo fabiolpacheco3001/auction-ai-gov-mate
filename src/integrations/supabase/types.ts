@@ -110,18 +110,21 @@ export type Database = {
         Row: {
           data_atualizacao: string
           id: string
+          logo_url: string | null
           prompt_classificacao_csv: string
           usuario_atualizacao: string
         }
         Insert: {
           data_atualizacao?: string
           id?: string
+          logo_url?: string | null
           prompt_classificacao_csv: string
           usuario_atualizacao?: string
         }
         Update: {
           data_atualizacao?: string
           id?: string
+          logo_url?: string | null
           prompt_classificacao_csv?: string
           usuario_atualizacao?: string
         }
