@@ -95,7 +95,7 @@ const ConfiguracaoClassificacaoCsv = () => {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Descreva aqui as regras de validação e classificação dos dados do CSV."
-            className="min-h-[200px] font-mono text-sm leading-relaxed"
+            className="min-h-[500px] font-mono text-sm leading-relaxed"
           />
           <p className="text-xs text-muted-foreground flex items-start gap-1.5">
             <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
