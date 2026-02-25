@@ -1,17 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export interface PrecificacaoSite {
-  url: string;
-  valorMedio: number | null;
-  confianca: number;
-}
-
-export interface Precificacao {
-  valorMedioGeral: number | null;
-  valorMedioPorSite: PrecificacaoSite[];
-  quantidadeSites: number;
-}
-
 export interface LoteItem {
   linha: number;
   tombamento: string;
@@ -22,8 +10,7 @@ export interface LoteItem {
   municipio: string;
   quantidade: number;
   valor: number;
-  valorMedioLeilao?: number | null;
-  precificacao?: Precificacao;
+  valorMedioLeilao: number | null;
 }
 
 export interface LoteClassificado {
@@ -62,6 +49,8 @@ export const CsvClassificationService = {
   async classificarCsv(file: File, promptConfigurado: string): Promise<ClassificationResult> {
     const text = await file.text();
     const rows = parseCsv(text);
+
+    console.log("Prompt usuario", promptConfigurado);
 
     if (rows.length === 0) {
       return {
