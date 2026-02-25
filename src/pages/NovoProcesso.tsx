@@ -1,8 +1,34 @@
 import { useState, useCallback } from "react";
-import { Upload, FileSpreadsheet, FileText, CheckCircle2, Loader2, ArrowRight, Plug } from "lucide-react";
+import { Upload, FileSpreadsheet, FileText, CheckCircle2, Loader2, ArrowRight, Plug, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+
+const generateTemplateCSV = () => {
+  const BOM = "\uFEFF";
+  const headers = [
+    "Número de Tombamento",
+    "Descrição do Bem",
+    "Categoria (veiculos/eletronicos/moveis/maquinario/outros)",
+    "Estado de Conservação (bom/regular/ruim/inservivel)",
+    "Localização",
+    "Valor Estimado (R$)",
+  ];
+  const exampleRows = [
+    ["VEI-2010-001", "Fiat Uno 2010 - Placa ABC-1234", "veiculos", "inservivel", "Garagem Central", "4500,00"],
+    ["ELE-2015-044", "Computador Desktop Dell OptiPlex 7010", "eletronicos", "ruim", "Almoxarifado TI", "150,00"],
+    ["MOV-2010-201", "Mesa de escritório em MDF 1.20m", "moveis", "ruim", "Depósito Sede", "45,00"],
+    ["MAQ-2009-010", "Compressor de ar industrial 200L", "maquinario", "inservivel", "Galpão Manutenção", "800,00"],
+  ];
+  const csv = BOM + [headers, ...exampleRows].map(row => row.map(cell => `"${cell}"`).join(";")).join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "modelo_bens_patrimoniais.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+};
 
 const NovoProcesso = () => {
   const navigate = useNavigate();
@@ -21,7 +47,6 @@ const NovoProcesso = () => {
   const handleFile = (f: File) => {
     setFile(f);
     setProcessing(true);
-    // Simulate AI processing
     setTimeout(() => {
       setProcessing(false);
       setDone(true);
@@ -35,11 +60,21 @@ const NovoProcesso = () => {
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">Novo Processo de Alienação</h1>
-        <p className="text-muted-foreground mt-1">
-          Envie sua lista de bens patrimoniais e a IA irá processar automaticamente
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-display font-bold text-foreground">Novo Processo de Alienação</h1>
+          <p className="text-muted-foreground mt-1">
+            Envie sua lista de bens patrimoniais e a IA irá processar automaticamente
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={generateTemplateCSV}
+          className="shrink-0"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Baixar Planilha Modelo
+        </Button>
       </div>
 
       {/* Upload area */}
@@ -70,12 +105,12 @@ const NovoProcesso = () => {
             Arraste o arquivo aqui ou clique para selecionar
           </h3>
           <p className="text-muted-foreground text-sm mb-6">
-            Suportamos arquivos Excel (.xlsx, .xls) e PDF
+            Suportamos arquivos Excel (.xlsx, .xls), CSV e PDF
           </p>
           <div className="flex items-center justify-center gap-6">
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
               <FileSpreadsheet className="w-4 h-4 text-success" />
-              <span>Excel</span>
+              <span>Excel / CSV</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
               <FileText className="w-4 h-4 text-destructive" />
