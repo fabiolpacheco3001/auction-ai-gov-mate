@@ -282,10 +282,10 @@ const RevisaoLotes = () => {
         <Card className="border-warning/30">
           <CardContent className="pt-4 space-y-2">
             {classificationResult.errosEncontrados.map((e, i) => (
-              <p key={i} className="text-xs text-destructive">⚠ {e}</p>
+              <p key={i} className="text-xs text-destructive">⚠ {typeof e === 'string' ? e : JSON.stringify(e)}</p>
             ))}
             {classificationResult.avisos.map((a, i) => (
-              <p key={i} className="text-xs text-warning">ℹ {a}</p>
+              <p key={i} className="text-xs text-warning">ℹ {typeof a === 'string' ? a : JSON.stringify(a)}</p>
             ))}
           </CardContent>
         </Card>
