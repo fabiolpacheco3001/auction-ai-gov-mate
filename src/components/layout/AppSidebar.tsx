@@ -5,6 +5,7 @@ import {
   PackageSearch,
   FileText,
   BarChart3,
+  DollarSign,
   Settings,
   Key,
   Gavel,
@@ -23,6 +24,7 @@ const navItems = [
   { to: "/documentos", label: "Documentos", icon: FileText },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { to: "/configuracoes/classificacao-csv", label: "Classificação CSV", icon: Settings },
+  { to: "/configuracoes/precificacao", label: "Precificação", icon: DollarSign },
   { to: "/configuracoes/api-token", label: "API Access Token", icon: Key },
 ];
 
