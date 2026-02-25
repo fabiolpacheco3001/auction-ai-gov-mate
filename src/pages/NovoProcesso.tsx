@@ -220,6 +220,7 @@ const NovoProcesso = () => {
           <Button
             onClick={() => navigate("/revisao-lotes", { state: { classificationResult, fileName: file?.name } })}
             className="bg-accent text-accent-foreground hover:bg-accent/90 font-medium px-6"
+            disabled={!!classificationResult && classificationResult.errosEncontrados.length > 0}
           >
             Revisar Lotes Gerados <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
