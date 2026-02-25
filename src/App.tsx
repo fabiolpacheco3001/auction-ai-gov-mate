@@ -12,6 +12,7 @@ import RevisaoLotes from "@/pages/RevisaoLotes";
 import Documentos from "@/pages/Documentos";
 import Relatorios from "@/pages/Relatorios";
 import ConfiguracaoClassificacaoCsv from "@/pages/ConfiguracaoClassificacaoCsv";
+import ConfiguracaoPrecificacao from "@/pages/ConfiguracaoPrecificacao";
 import ApiAccessToken from "@/pages/ApiAccessToken";
 import Login from "@/pages/Login";
 import NotFound from "./pages/NotFound";
@@ -42,6 +43,7 @@ const ProtectedRoutes = () => {
         <Route path="/documentos" element={<Documentos />} />
         <Route path="/relatorios" element={<Relatorios />} />
         <Route path="/configuracoes/classificacao-csv" element={<ConfiguracaoClassificacaoCsv />} />
+        <Route path="/configuracoes/precificacao" element={<ConfiguracaoPrecificacao />} />
         <Route path="/configuracoes/api-token" element={<ApiAccessToken />} />
       </Route>
       <Route path="*" element={<NotFound />} />
