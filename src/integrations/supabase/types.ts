@@ -14,7 +14,234 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bens: {
+        Row: {
+          categoria: string
+          created_at: string
+          descricao: string
+          estado: string
+          id: string
+          localizacao: string
+          processo_id: string | null
+          tombamento: string
+          valor_estimado: number
+        }
+        Insert: {
+          categoria?: string
+          created_at?: string
+          descricao: string
+          estado?: string
+          id?: string
+          localizacao?: string
+          processo_id?: string | null
+          tombamento?: string
+          valor_estimado?: number
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          descricao?: string
+          estado?: string
+          id?: string
+          localizacao?: string
+          processo_id?: string | null
+          tombamento?: string
+          valor_estimado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bens_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      configuracao_sistema: {
+        Row: {
+          data_atualizacao: string
+          id: string
+          prompt_classificacao_csv: string
+          usuario_atualizacao: string
+        }
+        Insert: {
+          data_atualizacao?: string
+          id?: string
+          prompt_classificacao_csv: string
+          usuario_atualizacao?: string
+        }
+        Update: {
+          data_atualizacao?: string
+          id?: string
+          prompt_classificacao_csv?: string
+          usuario_atualizacao?: string
+        }
+        Relationships: []
+      }
+      documentos: {
+        Row: {
+          created_at: string
+          data: string
+          id: string
+          nome: string
+          processo_id: string | null
+          processo_titulo: string
+          status: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          id?: string
+          nome: string
+          processo_id?: string | null
+          processo_titulo?: string
+          status?: string
+          tipo?: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          id?: string
+          nome?: string
+          processo_id?: string | null
+          processo_titulo?: string
+          status?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lotes: {
+        Row: {
+          categoria: string
+          created_at: string
+          id: string
+          numero: number
+          preco_aprovado: number | null
+          preco_sugerido: number
+          processo_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          id?: string
+          numero: number
+          preco_aprovado?: number | null
+          preco_sugerido?: number
+          processo_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          id?: string
+          numero?: number
+          preco_aprovado?: number | null
+          preco_sugerido?: number
+          processo_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lotes_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lotes_bens: {
+        Row: {
+          bem_id: string
+          id: string
+          lote_id: string
+        }
+        Insert: {
+          bem_id: string
+          id?: string
+          lote_id: string
+        }
+        Update: {
+          bem_id?: string
+          id?: string
+          lote_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lotes_bens_bem_id_fkey"
+            columns: ["bem_id"]
+            isOneToOne: false
+            referencedRelation: "bens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lotes_bens_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "lotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processos: {
+        Row: {
+          arrecadacao_estimada: number
+          arrecadacao_real: number | null
+          created_at: string
+          data_upload: string
+          id: string
+          orgao: string
+          status: string
+          titulo: string
+          total_bens: number
+          total_lotes: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          arrecadacao_estimada?: number
+          arrecadacao_real?: number | null
+          created_at?: string
+          data_upload?: string
+          id?: string
+          orgao: string
+          status?: string
+          titulo: string
+          total_bens?: number
+          total_lotes?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          arrecadacao_estimada?: number
+          arrecadacao_real?: number | null
+          created_at?: string
+          data_upload?: string
+          id?: string
+          orgao?: string
+          status?: string
+          titulo?: string
+          total_bens?: number
+          total_lotes?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
