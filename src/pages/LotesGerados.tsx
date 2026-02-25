@@ -17,7 +17,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { gerarDocumentoLotes, downloadPdf, fetchLotesComBens } from "@/services/DocumentoLoteService";
+import { gerarDocumentoLotes, downloadPdf } from "@/services/DocumentoLoteService";
+import LoteItemsTable from "@/components/lotes/LoteItemsTable";
 import {
   Collapsible,
   CollapsibleContent,
@@ -31,12 +32,6 @@ const statusLabels: Record<string, string> = {
   arrematado: "Arrematado",
 };
 
-const estadoLabels: Record<string, string> = {
-  bom: "Bom",
-  regular: "Regular",
-  ruim: "Ruim",
-  inservivel: "Inservível",
-};
 
 const categoryIcons: Record<string, React.ElementType> = {
   "Veículos Leves": Car,
@@ -55,6 +50,10 @@ interface Bem {
   quantidade: number;
   tombamento: string;
   valor_estimado: number;
+  valor_medio_site1: number | null;
+  valor_medio_site2: number | null;
+  valor_medio_site3: number | null;
+  valor_sugerido: number | null;
 }
 
 interface Lote {
@@ -123,6 +122,10 @@ const LotesGerados = () => {
             valor_estimado: Number(b.valor_estimado),
             quantidade: Number(b.quantidade ?? 1),
             municipio: b.municipio ?? "",
+            valor_medio_site1: b.valor_medio_site1 ? Number(b.valor_medio_site1) : null,
+            valor_medio_site2: b.valor_medio_site2 ? Number(b.valor_medio_site2) : null,
+            valor_medio_site3: b.valor_medio_site3 ? Number(b.valor_medio_site3) : null,
+            valor_sugerido: b.valor_sugerido ? Number(b.valor_sugerido) : null,
           };
         }
       }
@@ -387,43 +390,7 @@ const LotesGerados = () => {
                         </div>
 
                         {isExpanded && (
-                          <div className="border-t border-border">
-                            <table className="w-full">
-                              <thead>
-                                <tr className="bg-muted/30">
-                                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Tombamento</th>
-                                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Descrição</th>
-                                  <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Qtd</th>
-                                  <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Estado</th>
-                                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Localização</th>
-                                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Município</th>
-                                  <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-2.5">Valor Est.</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {lote.bens.map((item) => (
-                                  <tr key={item.id} className="border-t border-border/30 hover:bg-muted/20 transition-colors">
-                                    <td className="px-5 py-2.5 text-sm font-mono text-muted-foreground">{item.tombamento}</td>
-                                    <td className="px-5 py-2.5 text-sm text-foreground">{item.descricao}</td>
-                                    <td className="px-5 py-2.5 text-sm text-center text-foreground">{item.quantidade}</td>
-                                    <td className="px-5 py-2.5 text-center">
-                                      <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full",
-                                        item.estado === "bom" ? "bg-success/10 text-success" :
-                                        item.estado === "regular" ? "bg-info/10 text-info" :
-                                        item.estado === "ruim" ? "bg-warning/10 text-warning" :
-                                        "bg-destructive/10 text-destructive"
-                                      )}>
-                                        {estadoLabels[item.estado] ?? item.estado}
-                                      </span>
-                                    </td>
-                                    <td className="px-5 py-2.5 text-sm text-muted-foreground">{item.localizacao}</td>
-                                    <td className="px-5 py-2.5 text-sm text-muted-foreground">{item.municipio}</td>
-                                    <td className="px-5 py-2.5 text-sm text-right font-medium text-foreground">{currency(item.valor_estimado)}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
+                          <LoteItemsTable bens={lote.bens} loteId={lote.id} />
                         )}
                       </div>
                     );

@@ -57,6 +57,10 @@ export type Database = {
           quantidade: number
           tombamento: string
           valor_estimado: number
+          valor_medio_site1: number | null
+          valor_medio_site2: number | null
+          valor_medio_site3: number | null
+          valor_sugerido: number | null
         }
         Insert: {
           categoria?: string
@@ -70,6 +74,10 @@ export type Database = {
           quantidade?: number
           tombamento?: string
           valor_estimado?: number
+          valor_medio_site1?: number | null
+          valor_medio_site2?: number | null
+          valor_medio_site3?: number | null
+          valor_sugerido?: number | null
         }
         Update: {
           categoria?: string
@@ -83,6 +91,10 @@ export type Database = {
           quantidade?: number
           tombamento?: string
           valor_estimado?: number
+          valor_medio_site1?: number | null
+          valor_medio_site2?: number | null
+          valor_medio_site3?: number | null
+          valor_sugerido?: number | null
         }
         Relationships: [
           {
