@@ -96,25 +96,75 @@ const APP_FOOTER_NAME = "Leilão Fácil Gov";
 const dataGeracao = () => new Date().toLocaleDateString("pt-BR");
 const footerText = () => `Documento gerado por ${APP_FOOTER_NAME} em ${dataGeracao()}`;
 
+// ── Fetch logo URL from configuracao_sistema
+async function fetchLogoUrl(): Promise<string | null> {
+  const { data } = await supabase
+    .from("configuracao_sistema")
+    .select("logo_url")
+    .eq("id", "config-1")
+    .maybeSingle();
+  return (data as any)?.logo_url ?? null;
+}
+
+// ── Load image as base64 data URL for embedding
+async function loadImageAsBase64(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+// ── Get image dimensions
+function getImageDimensions(dataUrl: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve({ width: img.width, height: img.height });
+    img.onerror = () => resolve({ width: 100, height: 100 });
+    img.src = dataUrl;
+  });
+}
+
 // ───── PDF Generation ─────
 
-function addPdfHeader(doc: jsPDF) {
+function addPdfHeader(doc: jsPDF, logoDataUrl?: string | null) {
+  const pageWidth = 210;
   // Header background
   doc.setFillColor(20, 60, 100);
-  doc.rect(0, 0, 210, 28, "F");
+  doc.rect(0, 0, pageWidth, 32, "F");
 
-  // App name (logo text)
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(255, 255, 255);
-  doc.text("\u2696 " + APP_NAME, 14, 12);
+  if (logoDataUrl) {
+    // Logo centered with title
+    const logoH = 16;
+    const logoW = 40; // max width
+    const logoX = (pageWidth - logoW) / 2;
+    try {
+      doc.addImage(logoDataUrl, "PNG", logoX, 3, logoW, logoH, undefined, "FAST");
+    } catch { /* fallback to text */ }
+    // Title centered below logo
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.text("DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO", pageWidth / 2, 26, { align: "center" });
+  } else {
+    // Fallback: text centered
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.text("\u2696 " + APP_NAME, pageWidth / 2, 12, { align: "center" });
 
-  // Title
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text("DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO", 14, 22);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO", pageWidth / 2, 22, { align: "center" });
+  }
 
-  // Reset color
   doc.setTextColor(0, 0, 0);
 }
 
@@ -123,11 +173,9 @@ function addPdfFooter(doc: jsPDF) {
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     const pageHeight = doc.internal.pageSize.getHeight();
-    // Footer line
     doc.setDrawColor(20, 60, 100);
     doc.setLineWidth(0.5);
     doc.line(14, pageHeight - 16, 196, pageHeight - 16);
-    // Footer text
     doc.setFontSize(8);
     doc.setTextColor(100, 100, 100);
     doc.text(footerText(), 14, pageHeight - 10);
@@ -136,26 +184,28 @@ function addPdfFooter(doc: jsPDF) {
   }
 }
 
-export function gerarPdf(processoTitulo: string, lotes: LoteComBens[]): jsPDF {
+export async function gerarPdf(processoTitulo: string, lotes: LoteComBens[]): Promise<jsPDF> {
   const doc = new jsPDF();
   const totalAprovado = lotes.reduce((s, l) => s + (l.preco_aprovado ?? l.preco_sugerido), 0);
 
-  addPdfHeader(doc);
+  const logoUrl = await fetchLogoUrl();
+  const logoDataUrl = logoUrl ? await loadImageAsBase64(logoUrl) : null;
 
-  // Process info below header
+  addPdfHeader(doc, logoDataUrl);
+
   doc.setFontSize(10);
-  doc.text(`Processo: ${processoTitulo}`, 14, 36);
-  doc.text(`Data de Geração: ${dataGeracao()}`, 14, 42);
-  doc.text(`Total de Lotes: ${lotes.length}`, 14, 48);
-  doc.text(`Valor Total Aprovado: ${currency(totalAprovado)}`, 14, 54);
+  doc.text(`Processo: ${processoTitulo}`, 14, 40);
+  doc.text(`Data de Geração: ${dataGeracao()}`, 14, 46);
+  doc.text(`Total de Lotes: ${lotes.length}`, 14, 52);
+  doc.text(`Valor Total Aprovado: ${currency(totalAprovado)}`, 14, 58);
 
-  let startY = 62;
+  let startY = 66;
 
   for (const lote of lotes) {
     if (startY > 240) {
       doc.addPage();
-      addPdfHeader(doc);
-      startY = 36;
+      addPdfHeader(doc, logoDataUrl);
+      startY = 40;
     }
 
     doc.setFontSize(12);
@@ -196,8 +246,8 @@ export function gerarPdf(processoTitulo: string, lotes: LoteComBens[]): jsPDF {
   return doc;
 }
 
-export function downloadPdf(processoTitulo: string, lotes: LoteComBens[]) {
-  const doc = gerarPdf(processoTitulo, lotes);
+export async function downloadPdf(processoTitulo: string, lotes: LoteComBens[]) {
+  const doc = await gerarPdf(processoTitulo, lotes);
   doc.save(`composicao-lotes-${processoTitulo.replace(/\s+/g, "-").toLowerCase()}.pdf`);
 }
 
@@ -208,7 +258,6 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
   const ws = wb.addWorksheet("Composição de Lotes");
   const totalAprovado = lotes.reduce((s, l) => s + (l.preco_aprovado ?? l.preco_sugerido), 0);
 
-  // Column widths
   ws.columns = [
     { width: 22 },
     { width: 48 },
@@ -220,7 +269,6 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
   const headerFill: ExcelJS.FillPattern = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2980B9" } };
   const headerFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
   const boldFont: Partial<ExcelJS.Font> = { bold: true, size: 10 };
-  const titleFont: Partial<ExcelJS.Font> = { bold: true, size: 14 };
   const loteFont: Partial<ExcelJS.Font> = { bold: true, size: 12 };
   const thinBorder: Partial<ExcelJS.Borders> = {
     top: { style: "thin" },
@@ -229,26 +277,54 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
     right: { style: "thin" },
   };
 
-  // ── Header with app name
   const headerBgFill: ExcelJS.FillPattern = { type: "pattern", pattern: "solid", fgColor: { argb: "FF143C64" } };
   const headerWhiteFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: "FFFFFFFF" }, size: 14 };
   const subHeaderFont: Partial<ExcelJS.Font> = { color: { argb: "FFFFFFFF" }, size: 10 };
 
-  const appRow = ws.addRow(["\u2696 " + APP_NAME]);
-  appRow.getCell(1).font = headerWhiteFont;
-  appRow.getCell(1).fill = headerBgFill;
-  ws.mergeCells(appRow.number, 1, appRow.number, 5);
-  for (let c = 2; c <= 5; c++) appRow.getCell(c).fill = headerBgFill;
+  // Try to add logo image
+  const logoUrl = await fetchLogoUrl();
+  let logoImageId: number | null = null;
+
+  if (logoUrl) {
+    try {
+      const logoDataUrl = await loadImageAsBase64(logoUrl);
+      if (logoDataUrl) {
+        const base64Data = logoDataUrl.split(",")[1];
+        const ext = logoDataUrl.includes("image/png") ? "png" as const : "jpeg" as const;
+        logoImageId = wb.addImage({ base64: base64Data, extension: ext });
+      }
+    } catch { /* ignore */ }
+  }
+
+  if (logoImageId !== null) {
+    // Add logo row with image
+    const logoRow = ws.addRow([""]);
+    logoRow.height = 50;
+    for (let c = 1; c <= 5; c++) logoRow.getCell(c).fill = headerBgFill;
+    ws.mergeCells(logoRow.number, 1, logoRow.number, 5);
+
+    ws.addImage(logoImageId, {
+      tl: { col: 1.5, row: logoRow.number - 1 + 0.1 },
+      ext: { width: 160, height: 45 },
+    });
+  } else {
+    const appRow = ws.addRow(["\u2696 " + APP_NAME]);
+    appRow.getCell(1).font = headerWhiteFont;
+    appRow.getCell(1).fill = headerBgFill;
+    appRow.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
+    ws.mergeCells(appRow.number, 1, appRow.number, 5);
+    for (let c = 2; c <= 5; c++) appRow.getCell(c).fill = headerBgFill;
+  }
 
   const docTitleRow = ws.addRow(["DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO"]);
   docTitleRow.getCell(1).font = subHeaderFont;
   docTitleRow.getCell(1).fill = headerBgFill;
+  docTitleRow.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
   ws.mergeCells(docTitleRow.number, 1, docTitleRow.number, 5);
   for (let c = 2; c <= 5; c++) docTitleRow.getCell(c).fill = headerBgFill;
 
   ws.addRow([]);
 
-  // ── Header info
   const infoRows = [
     ["Processo:", processoTitulo],
     ["Data de Geração:", dataGeracao()],
@@ -261,7 +337,6 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
   }
   ws.addRow([]);
 
-  // ── Per-lot sections
   for (const lote of lotes) {
     const loteRow = ws.addRow([`Lote ${String(lote.numero).padStart(3, "0")} — ${lote.categoria}`]);
     loteRow.getCell(1).font = loteFont;
@@ -306,13 +381,11 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
     ws.addRow([]);
   }
 
-  // ── Footer
   ws.addRow([]);
   const ftRow = ws.addRow([footerText()]);
   ftRow.getCell(1).font = { italic: true, size: 9, color: { argb: "FF666666" } };
   ws.mergeCells(ftRow.number, 1, ftRow.number, 5);
 
-  // Download
   const buffer = await wb.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const url = URL.createObjectURL(blob);
@@ -326,13 +399,32 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
 // ───── DOCX Generation ─────
 
 export async function downloadDocx(processoTitulo: string, lotes: LoteComBens[]) {
-  const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, BorderStyle, ShadingType, Header, Footer } = await import("docx");
+  const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, BorderStyle, ShadingType, Header, Footer, ImageRun } = await import("docx");
 
   const totalAprovado = lotes.reduce((s, l) => s + (l.preco_aprovado ?? l.preco_sugerido), 0);
 
+  // Load logo for DOCX
+  const logoUrl = await fetchLogoUrl();
+  let logoBuffer: ArrayBuffer | null = null;
+  let logoDims = { width: 150, height: 50 };
+
+  if (logoUrl) {
+    try {
+      const response = await fetch(logoUrl);
+      logoBuffer = await response.arrayBuffer();
+      // Get dimensions
+      const dataUrl = await loadImageAsBase64(logoUrl);
+      if (dataUrl) {
+        const dims = await getImageDimensions(dataUrl);
+        const maxH = 50;
+        const scale = maxH / dims.height;
+        logoDims = { width: Math.round(dims.width * scale), height: maxH };
+      }
+    } catch { logoBuffer = null; }
+  }
+
   const children: any[] = [];
 
-  // Process info
   const infoLines = [
     `Processo: ${processoTitulo}`,
     `Data de Geração: ${dataGeracao()}`,
@@ -418,22 +510,41 @@ export async function downloadDocx(processoTitulo: string, lotes: LoteComBens[])
     children.push(new Paragraph({ spacing: { after: 200 }, children: [] }));
   }
 
+  // Build header children
+  const headerChildren: any[] = [];
+
+  if (logoBuffer) {
+    headerChildren.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      shading: { type: ShadingType.SOLID, color: "143C64" },
+      spacing: { after: 40 },
+      children: [
+        new ImageRun({
+          data: logoBuffer,
+          transformation: { width: logoDims.width, height: logoDims.height },
+          type: "png",
+        }),
+      ],
+    }));
+  } else {
+    headerChildren.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      shading: { type: ShadingType.SOLID, color: "143C64" },
+      spacing: { after: 40 },
+      children: [new TextRun({ text: "\u2696 " + APP_NAME, bold: true, color: "FFFFFF", size: 28 })],
+    }));
+  }
+
+  headerChildren.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    shading: { type: ShadingType.SOLID, color: "143C64" },
+    children: [new TextRun({ text: "DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO", color: "FFFFFF", size: 20 })],
+  }));
+
   const doc = new Document({
     sections: [{
       headers: {
-        default: new Header({
-          children: [
-            new Paragraph({
-              shading: { type: ShadingType.SOLID, color: "143C64" },
-              spacing: { after: 40 },
-              children: [new TextRun({ text: "\u2696 " + APP_NAME, bold: true, color: "FFFFFF", size: 28 })],
-            }),
-            new Paragraph({
-              shading: { type: ShadingType.SOLID, color: "143C64" },
-              children: [new TextRun({ text: "DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO", color: "FFFFFF", size: 20 })],
-            }),
-          ],
-        }),
+        default: new Header({ children: headerChildren }),
       },
       footers: {
         default: new Footer({

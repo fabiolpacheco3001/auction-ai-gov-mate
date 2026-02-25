@@ -198,7 +198,7 @@ const LotesGerados = () => {
     try {
       const result = await gerarDocumentoLotes(processoId, group.processo.titulo);
       if (result) {
-        downloadPdf(group.processo.titulo, result.lotes);
+        await downloadPdf(group.processo.titulo, result.lotes);
         queryClient.invalidateQueries({ queryKey: ["documentos"] });
         toast.success("Documento PDF de composição de lotes gerado com sucesso!");
       }

@@ -40,7 +40,7 @@ const Documentos = () => {
       }
 
       if (format === "pdf") {
-        downloadPdf(doc.processo_titulo, lotes);
+        await downloadPdf(doc.processo_titulo, lotes);
       } else if (format === "xlsx") {
         await downloadXlsx(doc.processo_titulo, lotes);
       } else {
