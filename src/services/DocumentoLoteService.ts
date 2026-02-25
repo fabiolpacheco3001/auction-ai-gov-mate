@@ -91,9 +91,10 @@ const estadoLabels: Record<string, string> = {
 
 const currency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-const APP_NAME = "Auction AI Gov Mate";
+const APP_NAME = "LeilãoFácil Gov";
+const APP_FOOTER_NAME = "Leilão Fácil Gov";
 const dataGeracao = () => new Date().toLocaleDateString("pt-BR");
-const footerText = () => `Documento gerado por ${APP_NAME} em ${dataGeracao()}`;
+const footerText = () => `Documento gerado por ${APP_FOOTER_NAME} em ${dataGeracao()}`;
 
 // ───── PDF Generation ─────
 
@@ -106,7 +107,7 @@ function addPdfHeader(doc: jsPDF) {
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255);
-  doc.text(APP_NAME, 14, 12);
+  doc.text("\u2696 " + APP_NAME, 14, 12);
 
   // Title
   doc.setFontSize(10);
@@ -233,7 +234,7 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
   const headerWhiteFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: "FFFFFFFF" }, size: 14 };
   const subHeaderFont: Partial<ExcelJS.Font> = { color: { argb: "FFFFFFFF" }, size: 10 };
 
-  const appRow = ws.addRow([APP_NAME]);
+  const appRow = ws.addRow(["\u2696 " + APP_NAME]);
   appRow.getCell(1).font = headerWhiteFont;
   appRow.getCell(1).fill = headerBgFill;
   ws.mergeCells(appRow.number, 1, appRow.number, 5);
@@ -425,7 +426,7 @@ export async function downloadDocx(processoTitulo: string, lotes: LoteComBens[])
             new Paragraph({
               shading: { type: ShadingType.SOLID, color: "143C64" },
               spacing: { after: 40 },
-              children: [new TextRun({ text: APP_NAME, bold: true, color: "FFFFFF", size: 28 })],
+              children: [new TextRun({ text: "\u2696 " + APP_NAME, bold: true, color: "FFFFFF", size: 28 })],
             }),
             new Paragraph({
               shading: { type: ShadingType.SOLID, color: "143C64" },
