@@ -1,0 +1,112 @@
+import { useState, useEffect } from "react";
+import { Save, RotateCcw, FileCode2, Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { ConfiguracaoSistemaService } from "@/services/ConfiguracaoSistemaService";
+
+const ConfiguracaoClassificacaoCsv = () => {
+  const { toast } = useToast();
+  const [prompt, setPrompt] = useState("");
+  const [lastUpdate, setLastUpdate] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const config = ConfiguracaoSistemaService.carregar();
+    setPrompt(config.promptClassificacaoCsv);
+    setLastUpdate(config.dataAtualizacao);
+  }, []);
+
+  const handleSave = () => {
+    if (!prompt.trim()) {
+      toast({ title: "Erro", description: "O prompt não pode estar vazio.", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    setTimeout(() => {
+      const config = ConfiguracaoSistemaService.salvar(prompt);
+      setLastUpdate(config.dataAtualizacao);
+      setSaving(false);
+      toast({ title: "Configuração salva", description: "O prompt de classificação foi atualizado com sucesso." });
+    }, 500);
+  };
+
+  const handleRestore = () => {
+    const config = ConfiguracaoSistemaService.restaurarPadrao();
+    setPrompt(config.promptClassificacaoCsv);
+    setLastUpdate(config.dataAtualizacao);
+    toast({ title: "Prompt restaurado", description: "O prompt padrão do sistema foi restaurado." });
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-8">
+      <div>
+        <h1 className="text-2xl font-display font-bold text-foreground">Configuração de Classificação de CSV</h1>
+        <p className="text-muted-foreground mt-1">
+          Defina o prompt que será utilizado pela IA para validar, classificar e processar os dados importados via CSV.
+        </p>
+      </div>
+
+      {/* Prompt Section */}
+      <div className="bg-card border border-border rounded-2xl p-6 shadow-card space-y-4">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+            <FileCode2 className="w-5 h-5 text-accent" />
+          </div>
+          <div>
+            <h2 className="text-lg font-display font-semibold text-foreground">Prompt de Classificação</h2>
+            <p className="text-xs text-muted-foreground">
+              Última atualização: {lastUpdate ? new Date(lastUpdate).toLocaleString("pt-BR") : "—"}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="promptClassificacaoCsv" className="text-sm font-medium">
+            Prompt de Classificação e Validação do CSV
+          </Label>
+          <Textarea
+            id="promptClassificacaoCsv"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Descreva aqui as regras de validação e classificação dos dados do CSV. Exemplo: Classifique os bens por categoria, valide valores monetários, identifique inconsistências, etc."
+            className="min-h-[200px] font-mono text-sm leading-relaxed"
+          />
+          <p className="text-xs text-muted-foreground flex items-start gap-1.5">
+            <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+            Este prompt será utilizado pelo sistema sempre que um arquivo CSV for importado. O sistema seguirá estas instruções para validar, classificar e estruturar os dados.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 pt-2">
+          <Button onClick={handleSave} disabled={saving} className="bg-accent text-accent-foreground hover:bg-accent/90">
+            <Save className="w-4 h-4 mr-2" />
+            {saving ? "Salvando..." : "Salvar Configuração"}
+          </Button>
+          <Button variant="outline" onClick={handleRestore}>
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Restaurar Padrão
+          </Button>
+        </div>
+      </div>
+
+      {/* Info card */}
+      <div className="bg-muted/50 border border-border rounded-xl p-5 flex items-start gap-4">
+        <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center shrink-0">
+          <Info className="w-5 h-5 text-info" />
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-foreground mb-1">Como funciona</h4>
+          <p className="text-sm text-muted-foreground">
+            Ao importar um arquivo CSV na tela de <strong>Novo Processo</strong>, o sistema carregará automaticamente
+            o prompt salvo aqui e o utilizará como instrução principal para validar, classificar e estruturar os dados.
+            O resultado incluirá dados classificados, erros encontrados, avisos e sugestões de correção.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ConfiguracaoClassificacaoCsv;

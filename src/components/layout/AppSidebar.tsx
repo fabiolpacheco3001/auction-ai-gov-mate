@@ -19,7 +19,7 @@ const navItems = [
   { to: "/lotes", label: "Lotes Gerados", icon: PackageSearch },
   { to: "/documentos", label: "Documentos", icon: FileText },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
-  { to: "/configuracoes", label: "Configurações", icon: Settings },
+  { to: "/configuracoes/classificacao-csv", label: "Classificação CSV", icon: Settings },
 ];
 
 const AppSidebar = () => {

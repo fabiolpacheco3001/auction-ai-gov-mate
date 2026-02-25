@@ -1,8 +1,10 @@
 import { useState, useCallback } from "react";
-import { Upload, FileSpreadsheet, FileText, CheckCircle2, Loader2, ArrowRight, Plug, Download } from "lucide-react";
+import { Upload, FileSpreadsheet, FileText, CheckCircle2, Loader2, ArrowRight, Plug, Download, Info, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { ConfiguracaoSistemaService } from "@/services/ConfiguracaoSistemaService";
+import { CsvClassificationService, ClassificationResult } from "@/services/CsvClassificationService";
 
 const generateTemplateCSV = () => {
   const BOM = "\uFEFF";
@@ -36,6 +38,7 @@ const NovoProcesso = () => {
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
+  const [classificationResult, setClassificationResult] = useState<ClassificationResult | null>(null);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -44,13 +47,27 @@ const NovoProcesso = () => {
     if (dropped) handleFile(dropped);
   }, []);
 
-  const handleFile = (f: File) => {
+  const handleFile = async (f: File) => {
     setFile(f);
     setProcessing(true);
-    setTimeout(() => {
-      setProcessing(false);
-      setDone(true);
-    }, 3000);
+    setClassificationResult(null);
+
+    const isCsv = f.name.toLowerCase().endsWith(".csv");
+    if (isCsv) {
+      try {
+        const config = ConfiguracaoSistemaService.carregar();
+        const result = await CsvClassificationService.classificarCsv(f, config.promptClassificacaoCsv);
+        setClassificationResult(result);
+      } catch {
+        // fallback — continue without classification
+      }
+    } else {
+      // Simulate processing for non-CSV files
+      await new Promise((r) => setTimeout(r, 2500));
+    }
+
+    setProcessing(false);
+    setDone(true);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -159,8 +176,40 @@ const NovoProcesso = () => {
             Processamento Concluído!
           </h3>
           <p className="text-muted-foreground text-sm mb-2">
-            <strong className="text-foreground">12 bens</strong> identificados · <strong className="text-foreground">4 lotes</strong> formados · Arquivo: {file.name}
+            <strong className="text-foreground">{classificationResult?.totalRegistros ?? 12} bens</strong> identificados · <strong className="text-foreground">4 lotes</strong> formados · Arquivo: {file.name}
           </p>
+
+          {classificationResult && (classificationResult.errosEncontrados.length > 0 || classificationResult.avisos.length > 0) && (
+            <div className="text-left bg-muted/50 border border-border rounded-xl p-4 my-4 space-y-3 max-w-md mx-auto">
+              {classificationResult.errosEncontrados.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-destructive mb-1">Erros ({classificationResult.errosEncontrados.length})</p>
+                  <ul className="text-xs text-muted-foreground space-y-0.5">
+                    {classificationResult.errosEncontrados.slice(0, 5).map((e, i) => <li key={i}>• {e}</li>)}
+                    {classificationResult.errosEncontrados.length > 5 && <li className="text-muted-foreground/60">...e mais {classificationResult.errosEncontrados.length - 5}</li>}
+                  </ul>
+                </div>
+              )}
+              {classificationResult.avisos.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-warning mb-1">Avisos ({classificationResult.avisos.length})</p>
+                  <ul className="text-xs text-muted-foreground space-y-0.5">
+                    {classificationResult.avisos.slice(0, 5).map((a, i) => <li key={i}>• {a}</li>)}
+                    {classificationResult.avisos.length > 5 && <li className="text-muted-foreground/60">...e mais {classificationResult.avisos.length - 5}</li>}
+                  </ul>
+                </div>
+              )}
+              {classificationResult.sugestoes.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-info mb-1">Sugestões ({classificationResult.sugestoes.length})</p>
+                  <ul className="text-xs text-muted-foreground space-y-0.5">
+                    {classificationResult.sugestoes.slice(0, 3).map((s, i) => <li key={i}>• {s}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
           <p className="text-muted-foreground text-sm mb-6">
             Arrecadação estimada: <strong className="text-success">R$ 20.655,00</strong>
           </p>
@@ -172,6 +221,19 @@ const NovoProcesso = () => {
           </Button>
         </div>
       )}
+
+      {/* CSV classification info */}
+      <div className="bg-accent/5 border border-accent/20 rounded-xl p-4 flex items-start gap-3">
+        <Info className="w-5 h-5 text-accent mt-0.5 shrink-0" />
+        <div className="text-sm text-muted-foreground">
+          <p>
+            Este arquivo será validado e classificado conforme as regras definidas em{" "}
+            <Link to="/configuracoes/classificacao-csv" className="text-accent font-medium hover:underline inline-flex items-center gap-1">
+              <Settings className="w-3.5 h-3.5" /> Configurações &gt; Classificação de CSV
+            </Link>
+          </p>
+        </div>
+      </div>
 
       {/* API integration hint */}
       <div className="bg-muted/50 border border-border rounded-xl p-5 flex items-start gap-4">
