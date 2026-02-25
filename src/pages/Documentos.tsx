@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { fetchLotesComBens, downloadPdf, downloadXlsx } from "@/services/DocumentoLoteService";
+import { fetchLotesComBens, downloadPdf, downloadXlsx, downloadDocx } from "@/services/DocumentoLoteService";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -26,7 +26,7 @@ const Documentos = () => {
     },
   });
 
-  const handleDownload = async (doc: any, format: "pdf" | "xlsx") => {
+  const handleDownload = async (doc: any, format: "pdf" | "xlsx" | "docx") => {
     if (!doc.processo_id) {
       toast.error("Documento sem processo associado.");
       return;
@@ -41,8 +41,10 @@ const Documentos = () => {
 
       if (format === "pdf") {
         downloadPdf(doc.processo_titulo, lotes);
-      } else {
+      } else if (format === "xlsx") {
         await downloadXlsx(doc.processo_titulo, lotes);
+      } else {
+        await downloadDocx(doc.processo_titulo, lotes);
       }
       toast.success(`Documento ${format.toUpperCase()} gerado com sucesso!`);
     } catch (err) {
@@ -50,7 +52,6 @@ const Documentos = () => {
       toast.error("Erro ao gerar documento.");
     }
   };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -109,6 +110,9 @@ const Documentos = () => {
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDownload(doc, "xlsx")}>
                           📊 Baixar XLSX
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDownload(doc, "docx")}>
+                          📝 Baixar DOCX
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
