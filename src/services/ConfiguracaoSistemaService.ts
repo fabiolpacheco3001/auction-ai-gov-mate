@@ -15,7 +15,7 @@ const PROMPT_PADRAO = `Classifique os bens patrimoniais do CSV seguindo estas re
 4. TOMBAMENTO: Verifique se o número de tombamento segue o padrão esperado (ex: VEI-2010-001).
 5. INCONSISTÊNCIAS: Identifique registros com campos obrigatórios vazios (descrição, categoria, localização).
 6. DUPLICATAS: Sinalize possíveis itens duplicados com base no número de tombamento.
-7. SUGESTÕES: Sugira correções para campos com valores inválidos ou fora do padrão.`;
+7. Gere os lotes agrupados por Municipio e Categoria.`;
 
 export const ConfiguracaoSistemaService = {
   getPromptPadrao: () => PROMPT_PADRAO,
@@ -24,16 +24,17 @@ export const ConfiguracaoSistemaService = {
     const now = new Date().toISOString();
     await supabase
       .from("configuracao_sistema")
-      .upsert({ id: "config-1", prompt_classificacao_csv: prompt, data_atualizacao: now, usuario_atualizacao: "admin" });
+      .upsert({
+        id: "config-1",
+        prompt_classificacao_csv: prompt,
+        data_atualizacao: now,
+        usuario_atualizacao: "admin",
+      });
     return { id: "config-1", promptClassificacaoCsv: prompt, dataAtualizacao: now, usuarioAtualizacao: "admin" };
   },
 
   async carregar(): Promise<ConfiguracaoSistema> {
-    const { data } = await supabase
-      .from("configuracao_sistema")
-      .select("*")
-      .eq("id", "config-1")
-      .maybeSingle();
+    const { data } = await supabase.from("configuracao_sistema").select("*").eq("id", "config-1").maybeSingle();
     if (data) {
       return {
         id: data.id,
@@ -42,7 +43,12 @@ export const ConfiguracaoSistemaService = {
         usuarioAtualizacao: data.usuario_atualizacao,
       };
     }
-    return { id: "config-1", promptClassificacaoCsv: PROMPT_PADRAO, dataAtualizacao: new Date().toISOString(), usuarioAtualizacao: "sistema" };
+    return {
+      id: "config-1",
+      promptClassificacaoCsv: PROMPT_PADRAO,
+      dataAtualizacao: new Date().toISOString(),
+      usuarioAtualizacao: "sistema",
+    };
   },
 
   async restaurarPadrao(): Promise<ConfiguracaoSistema> {
