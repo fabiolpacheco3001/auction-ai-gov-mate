@@ -34,16 +34,11 @@ serve(async (req) => {
     console.log("Total de registros CSV:", dadosCsv?.length);
     console.log("Sites de precificação encontrados:", sitesPrecificacao?.length ?? 0);
 
-    const sitesJson = JSON.stringify(sitesPrecificacao ?? [], null, 2);
-
     const userMessage = `PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO:
 ${promptConfigurado}
 
 SITES DE PRECIFICAÇÃO PARA CONSULTA DE VALORES:
 ${sitesInfo || "Nenhum site configurado."}
-
-LISTA ESTRUTURADA DOS SITES (use exatamente estas URLs):
-${sitesJson}
 
 DADOS DO CSV:
 ${JSON.stringify(dadosCsv, null, 2)}
@@ -51,24 +46,18 @@ ${JSON.stringify(dadosCsv, null, 2)}
 INSTRUÇÕES:
 Analise os dados e aplique exatamente as regras definidas no prompt do usuário.
 
-PESQUISA DE VALOR MÉDIO DE LEILÃO POR SITE:
-Para cada item do CSV, você deve:
-- Analisar a descrição, categoria, estado, localização e demais dados disponíveis
-- Considerar cada URL da lista de sites_precificacao como uma fonte independente
-- Estimar um valor médio de leilão separado para cada site
-- Calcular também o valor médio geral baseado nos valores estimados de todos os sites
-- Ignorar valores irreais ou fora do padrão de mercado
-- Usar aproximação inteligente baseada em similaridade com itens equivalentes
-- Se não houver confiança suficiente, retornar null
-- O campo "confianca" deve ser um número entre 0 e 1 indicando o grau de confiança da estimativa
-- Nunca omitir nenhum site da lista
-- Nunca inventar URLs — usar exatamente as URLs fornecidas
+PESQUISA DE VALOR MÉDIO DE LEILÃO:
+Para cada item, você deve:
+- Usar a descrição, categoria, estado e demais dados disponíveis do item
+- Com base no seu conhecimento dos sites de precificação listados acima, estimar o valor médio de venda em leilões de itens equivalentes ou similares
+- Considerar valores realistas de mercado para bens usados em leilões públicos
+- Ignorar valores irreais ou fora do padrão
+- Usar aproximação inteligente baseada em similaridade quando não houver correspondência exata
+- Retornar o valor no campo "valorMedioLeilao" (numérico float)
+- Se não for possível estimar um valor confiável, retornar null
 
 REGRAS DE AGRUPAMENTO DE LOTES:
-- Os itens devem ser agrupados por: categoria + municipio + localizacao
-- Um lote é definido pela combinação única de: mesma categoria, mesmo município e mesma localização
-- Se qualquer um desses campos for diferente, deve ser criado um novo lote
-- Cada lote deve incluir os campos: categoria, municipio, localizacao
+- Deve considerar as regras definidas pelo usuário
 
 Retorne APENAS um JSON válido no seguinte formato:
 
@@ -91,17 +80,7 @@ Retorne APENAS um JSON válido no seguinte formato:
           "municipio": string,
           "quantidade": number,
           "valor": number,
-          "precificacao": {
-            "valorMedioGeral": number | null,
-            "valorMedioPorSite": [
-              {
-                "url": string,
-                "valorMedio": number | null,
-                "confianca": number
-              }
-            ],
-            "quantidadeSites": number
-          }
+          "valorMedioLeilao": number | null
         }
       ]
     }
@@ -122,12 +101,7 @@ INSTRUÇÕES OBRIGATÓRIAS:
 - Use o promptConfigurado como regra principal de classificação
 - O campo "municipio" deve conter o município do item
 - O campo "quantidade" deve conter a quantidade do item (padrão 1 se não informado)
-- O campo "precificacao.valorMedioPorSite" deve conter um objeto para CADA URL fornecida em sites_precificacao
-- O campo "url" dentro de valorMedioPorSite deve ser EXATAMENTE igual ao fornecido na lista
-- "valorMedio" deve ser um número float ou null
-- "confianca" deve ser um número entre 0 e 1
-- "valorMedioGeral" deve ser a média dos valorMedio válidos (não nulos)
-- "quantidadeSites" deve ser o total de sites considerados
+- O campo "valorMedioLeilao" deve conter o valor médio estimado de leilão baseado nos sites de precificação
 - Retorne somente JSON válido
 - Não retorne explicações
 - Não retorne texto fora do JSON`;
@@ -145,7 +119,7 @@ INSTRUÇÕES OBRIGATÓRIAS:
           {
             role: "system",
             content:
-              "Você é um especialista em classificação e agrupamento de bens patrimoniais, avaliação de leilões públicos, classificação patrimonial e precificação de bens usados.\n\nSua tarefa é:\n1. Classificar os itens conforme o prompt do usuário\n2. Agrupar os itens por categoria + municipio + localizacao (cada combinação única = um lote)\n3. Para cada item, estimar o valor médio de leilão INDIVIDUALMENTE para cada site de precificação fornecido\n4. Calcular o valor médio geral consolidado a partir dos valores por site\n5. Usar aproximação inteligente baseada em similaridade quando não houver correspondência exata\n6. Retornar os dados estruturados em formato de lotes com o campo precificacao contendo valorMedioGeral, valorMedioPorSite e quantidadeSites\n\nResponda APENAS com JSON válido.",
+              "Você é um especialista em classificação e agrupamento de bens patrimoniais, avaliação de leilões públicos, classificação patrimonial e precificação de bens usados.\n\nSua tarefa é:\n1. Classificar os itens conforme o prompt do usuário\n2. Agrupar os itens por categoria + municipio + localizacao (cada combinação única = um lote)\n3. Para cada item, estimar o valor médio de leilão consultando os sites de precificação fornecidos\n4. Usar aproximação inteligente baseada em similaridade quando não houver correspondência exata\n5. Retornar os dados estruturados em formato de lotes com o campo valorMedioLeilao\n\nResponda APENAS com JSON válido.",
           },
           { role: "user", content: userMessage },
         ],
