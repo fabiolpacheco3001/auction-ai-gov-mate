@@ -14,7 +14,7 @@ const PROMPT_PADRAO = `Classifique os bens patrimoniais do CSV seguindo estas re
 4. TOMBAMENTO: Verifique se o número de tombamento segue o padrão esperado (ex: VEI-2010-001).
 5. INCONSISTÊNCIAS: Identifique registros com campos obrigatórios vazios (descrição, categoria, localização).
 6. DUPLICATAS: Sinalize possíveis itens duplicados com base no número de tombamento.
-7. SUGESTÕES: Sugira correções para campos com valores inválidos ou fora do padrão.`;
+7. Gere os lotes agrupados por Municipio e Categoria.`;
 
 const ConfiguracaoClassificacaoCsv = () => {
   const { toast } = useToast();
@@ -24,11 +24,7 @@ const ConfiguracaoClassificacaoCsv = () => {
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase
-        .from("configuracao_sistema")
-        .select("*")
-        .eq("id", "config-1")
-        .maybeSingle();
+      const { data } = await supabase.from("configuracao_sistema").select("*").eq("id", "config-1").maybeSingle();
       if (data) {
         setPrompt(data.prompt_classificacao_csv);
         setLastUpdate(data.data_atualizacao);
@@ -48,7 +44,12 @@ const ConfiguracaoClassificacaoCsv = () => {
     const now = new Date().toISOString();
     await supabase
       .from("configuracao_sistema")
-      .upsert({ id: "config-1", prompt_classificacao_csv: prompt, data_atualizacao: now, usuario_atualizacao: "admin" });
+      .upsert({
+        id: "config-1",
+        prompt_classificacao_csv: prompt,
+        data_atualizacao: now,
+        usuario_atualizacao: "admin",
+      });
     setLastUpdate(now);
     setSaving(false);
     toast({ title: "Configuração salva", description: "O prompt de classificação foi atualizado com sucesso." });
@@ -59,7 +60,12 @@ const ConfiguracaoClassificacaoCsv = () => {
     const now = new Date().toISOString();
     await supabase
       .from("configuracao_sistema")
-      .upsert({ id: "config-1", prompt_classificacao_csv: PROMPT_PADRAO, data_atualizacao: now, usuario_atualizacao: "admin" });
+      .upsert({
+        id: "config-1",
+        prompt_classificacao_csv: PROMPT_PADRAO,
+        data_atualizacao: now,
+        usuario_atualizacao: "admin",
+      });
     setLastUpdate(now);
     toast({ title: "Prompt restaurado", description: "O prompt padrão do sistema foi restaurado." });
   };
@@ -104,7 +110,11 @@ const ConfiguracaoClassificacaoCsv = () => {
         </div>
 
         <div className="flex items-center gap-3 pt-2">
-          <Button onClick={handleSave} disabled={saving} className="bg-accent text-accent-foreground hover:bg-accent/90">
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-accent text-accent-foreground hover:bg-accent/90"
+          >
             <Save className="w-4 h-4 mr-2" />
             {saving ? "Salvando..." : "Salvar Configuração"}
           </Button>
@@ -122,8 +132,8 @@ const ConfiguracaoClassificacaoCsv = () => {
         <div>
           <h4 className="text-sm font-semibold text-foreground mb-1">Como funciona</h4>
           <p className="text-sm text-muted-foreground">
-            Ao importar um arquivo CSV na tela de <strong>Novo Processo</strong>, o sistema carregará automaticamente
-            o prompt salvo aqui e o utilizará como instrução principal para validar, classificar e estruturar os dados.
+            Ao importar um arquivo CSV na tela de <strong>Novo Processo</strong>, o sistema carregará automaticamente o
+            prompt salvo aqui e o utilizará como instrução principal para validar, classificar e estruturar os dados.
           </p>
         </div>
       </div>
