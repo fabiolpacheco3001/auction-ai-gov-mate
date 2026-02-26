@@ -91,8 +91,8 @@ const estadoLabels: Record<string, string> = {
 
 const currency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-const APP_NAME = "LeilãoFácil Gov";
-const APP_FOOTER_NAME = "Leilão Fácil Gov";
+const APP_NAME = "AlienaGov";
+const APP_FOOTER_NAME = "AlienaGov";
 const dataGeracao = () => new Date().toLocaleDateString("pt-BR");
 const footerText = () => `Documento gerado por ${APP_FOOTER_NAME} em ${dataGeracao()}`;
 

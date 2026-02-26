@@ -48,9 +48,8 @@ const AppSidebar = () => {
         {!collapsed && (
           <div className="overflow-hidden">
             <h1 className="text-base font-display font-bold text-sidebar-primary-foreground leading-tight">
-              LeilãoFácil
+              AlienaGov
             </h1>
-            <p className="text-[11px] text-sidebar-foreground/60 tracking-wider uppercase">Gov</p>
           </div>
         )}
       </div>
