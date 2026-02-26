@@ -8,7 +8,6 @@ import {
   DollarSign,
   Settings,
   Key,
-  BookOpen,
   Gavel,
   ChevronLeft,
   ChevronRight,
@@ -27,7 +26,6 @@ const navItems = [
   { to: "/configuracoes/classificacao-csv", label: "Classificação CSV", icon: Settings },
   { to: "/configuracoes/precificacao", label: "Configurações", icon: Settings },
   { to: "/configuracoes/api-token", label: "API Access Token", icon: Key },
-  { to: "/documentacao-negocio", label: "Documentação", icon: BookOpen },
 ];
 
 const AppSidebar = () => {
