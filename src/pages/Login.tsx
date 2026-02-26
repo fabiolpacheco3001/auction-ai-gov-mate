@@ -17,7 +17,7 @@ const Login = () => {
     setError("");
     setLoading(true);
 
-    const loginEmail = email.includes("@") ? email : `${email}@leilaofacil.gov.br`;
+    const loginEmail = email.includes("@") ? email : `${email}@alienagov.gov.br`;
     const { error } = await signIn(loginEmail, password);
     if (error) setError("Credenciais inválidas. Verifique seu login e senha.");
     setLoading(false);
@@ -31,7 +31,7 @@ const Login = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-hero mb-4">
             <Gavel className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-display font-bold text-foreground">LeilãoFácil Gov</h1>
+          <h1 className="text-2xl font-display font-bold text-foreground">AlienaGov</h1>
           <p className="text-muted-foreground text-sm mt-1">Sistema de Gestão de Alienação Patrimonial</p>
         </div>
 
