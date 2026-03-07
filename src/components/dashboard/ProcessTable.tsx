@@ -28,7 +28,7 @@ const ProcessTable = () => {
   const { data: processos } = useQuery({
     queryKey: ["processos", selectedOrgId],
     queryFn: async () => {
-      let query = supabase.from("processos").select("*").order("data_upload", { ascending: false });
+      let query = supabase.from("processos").select("*, orgaos:orgao_id(sigla)").order("data_upload", { ascending: false });
       if (selectedOrgId) query = query.eq("orgao_id", selectedOrgId);
       const { data } = await query;
       return data ?? [];
@@ -63,7 +63,7 @@ const ProcessTable = () => {
                   <p className="text-sm font-medium text-foreground">{p.titulo}</p>
                   <p className="text-xs text-muted-foreground">{new Date(p.data_upload).toLocaleDateString("pt-BR")}</p>
                 </td>
-                <td className="px-5 py-3.5 text-sm text-muted-foreground">{p.orgao}</td>
+                <td className="px-5 py-3.5 text-sm text-muted-foreground">{(p as any).orgaos?.sigla ?? "—"}</td>
                 <td className="px-5 py-3.5 text-sm text-center text-foreground">{p.total_bens}</td>
                 <td className="px-5 py-3.5 text-sm text-center text-foreground">{p.total_lotes}</td>
                 <td className="px-5 py-3.5 text-sm text-right font-medium text-foreground">
