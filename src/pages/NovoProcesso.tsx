@@ -272,7 +272,6 @@ const NovoProcesso = () => {
           <p className="text-xs font-semibold text-foreground mt-3">Corpo da requisição (JSON)</p>
           <pre className="text-xs bg-muted px-3 py-2 rounded font-mono overflow-x-auto whitespace-pre">{`{
   "titulo": "Processo - Lote Veículos 2026",
-  "orgao": "Prefeitura de São Paulo",
   "itens": [
     {
       "tombamento": "VEI-2010-001",
@@ -286,6 +285,10 @@ const NovoProcesso = () => {
     }
   ]
 }`}</pre>
+          <p className="text-xs text-muted-foreground mt-1">
+            <Info className="w-3 h-3 inline mr-1" />
+            O órgão é identificado automaticamente pelo token utilizado na requisição.
+          </p>
 
           <p className="text-xs font-semibold text-foreground mt-3">Resposta de sucesso (201)</p>
           <pre className="text-xs bg-muted px-3 py-2 rounded font-mono overflow-x-auto whitespace-pre">{`{
