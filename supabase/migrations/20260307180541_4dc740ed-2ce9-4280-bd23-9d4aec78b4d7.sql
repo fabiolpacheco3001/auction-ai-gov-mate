@@ -1,0 +1,1 @@
+ALTER TABLE public.processos DROP COLUMN orgao;

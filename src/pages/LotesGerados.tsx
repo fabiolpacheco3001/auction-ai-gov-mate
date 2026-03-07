@@ -72,7 +72,7 @@ interface Lote {
 interface Processo {
   id: string;
   titulo: string;
-  orgao: string;
+  sigla_orgao?: string;
   created_at?: string;
 }
 
@@ -111,9 +111,9 @@ const LotesGerados = () => {
       // Fetch processos
       let processosMap: Record<string, Processo> = {};
       if (fetchedProcessoIds.length > 0) {
-        const { data: processosData } = await supabase.from("processos").select("id, titulo, orgao, created_at").in("id", fetchedProcessoIds);
+        const { data: processosData } = await supabase.from("processos").select("id, titulo, created_at, orgaos:orgao_id(sigla)").in("id", fetchedProcessoIds);
         for (const p of processosData ?? []) {
-          processosMap[p.id] = p;
+          processosMap[p.id] = { id: p.id, titulo: p.titulo, created_at: p.created_at, sigla_orgao: (p as any).orgaos?.sigla ?? "" };
         }
       }
 
@@ -181,7 +181,7 @@ const LotesGerados = () => {
         result.push({ processo: processosMap[pid], lotes: grouped[pid] });
       }
       if (noProcesso.length > 0) {
-        result.push({ processo: { id: "__sem_processo__", titulo: "Sem Processo", orgao: "" }, lotes: noProcesso });
+        result.push({ processo: { id: "__sem_processo__", titulo: "Sem Processo", sigla_orgao: "" }, lotes: noProcesso });
       }
 
       return result;
@@ -357,8 +357,8 @@ const LotesGerados = () => {
                         </p>
                       )}
                     </div>
-                    {group.processo.orgao && (
-                      <p className="text-xs text-muted-foreground">{group.processo.orgao}</p>
+                    {group.processo.sigla_orgao && (
+                      <p className="text-xs text-muted-foreground">{group.processo.sigla_orgao}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
