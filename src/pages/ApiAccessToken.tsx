@@ -22,8 +22,7 @@ interface ApiToken {
 const ApiAccessToken = () => {
   const { user } = useAuth();
   const { selectedOrgId } = useOrgFilter();
-  const { role } = useUserRole();
-  const isSuperAdmin = role === "super_admin";
+  const { isSuperAdmin } = useUserRole();
   const [tokens, setTokens] = useState<ApiToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
