@@ -5,17 +5,18 @@ import {
   PackageSearch,
   FileText,
   BarChart3,
-  DollarSign,
   Settings,
   Key,
   Gavel,
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Building2,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -26,6 +27,10 @@ const navItems = [
   { to: "/configuracoes/classificacao-csv", label: "Classificação CSV", icon: Settings },
   { to: "/configuracoes/precificacao", label: "Configurações", icon: Settings },
   { to: "/configuracoes/api-token", label: "API Access Token", icon: Key },
+];
+
+const adminItems = [
+  { to: "/admin/orgaos", label: "Cadastro de Órgãos", icon: Building2 },
 ];
 
 const AppSidebar = () => {
