@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Key, Plus, Copy, Trash2, Loader2, Eye, EyeOff } from "lucide-react";
 import { useOrgFilter } from "@/hooks/useOrgFilter";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface ApiToken {
   id: string;
@@ -21,6 +22,7 @@ interface ApiToken {
 const ApiAccessToken = () => {
   const { user } = useAuth();
   const { selectedOrgId } = useOrgFilter();
+  const { isSuperAdmin } = useUserRole();
   const [tokens, setTokens] = useState<ApiToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -29,7 +31,8 @@ const ApiAccessToken = () => {
 
   const fetchTokens = async () => {
     if (!user) return;
-    let query = supabase.from("api_tokens").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    let query = supabase.from("api_tokens").select("*").order("created_at", { ascending: false });
+    if (!isSuperAdmin) query = query.eq("user_id", user.id);
     if (selectedOrgId) query = query.eq("orgao_id", selectedOrgId);
     const { data, error } = await query;
     if (error) {
