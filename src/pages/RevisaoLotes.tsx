@@ -172,6 +172,7 @@ const RevisaoLotes = () => {
         .insert({
           titulo: `Processo - ${fileName}`,
           user_id: user.id,
+          orgao_id: selectedOrgId || null,
           total_bens: totalBens,
           total_lotes: lotesComItens.length,
           arrecadacao_estimada: totalValor,
