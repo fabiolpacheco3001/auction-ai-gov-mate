@@ -10,10 +10,11 @@ interface Orgao {
 }
 
 interface OrgContextType {
-  selectedOrgId: string | null; // null = "Todos os Órgãos"
+  selectedOrgId: string | null;
   selectedOrgName: string;
   orgaos: Orgao[];
   loading: boolean;
+  isSuperAdmin: boolean;
   setSelectedOrg: (orgId: string | null) => void;
 }
 
@@ -29,21 +30,34 @@ export const OrgProvider = ({ children }: { children: ReactNode }) => {
   });
   const [orgaos, setOrgaos] = useState<Orgao[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
     if (!user) return;
-    const fetch = async () => {
-      const { data } = await supabase
-        .from("orgaos")
-        .select("id, nome, sigla, ativo")
-        .order("nome");
-      setOrgaos(data ?? []);
+    const fetchData = async () => {
+      const [{ data: orgData }, { data: roles }, { data: orgUser }] = await Promise.all([
+        supabase.from("orgaos").select("id, nome, sigla, ativo").order("nome"),
+        supabase.from("user_roles").select("role").eq("user_id", user.id),
+        supabase.from("orgao_usuarios").select("orgao_id").eq("user_id", user.id).eq("ativo", true).maybeSingle(),
+      ]);
+
+      setOrgaos(orgData ?? []);
+
+      const superAdmin = roles?.some((r: any) => r.role === "super_admin") ?? false;
+      setIsSuperAdmin(superAdmin);
+
+      if (!superAdmin && orgUser?.orgao_id) {
+        setSelectedOrgId(orgUser.orgao_id);
+        localStorage.setItem(STORAGE_KEY, orgUser.orgao_id);
+      }
+
       setLoading(false);
     };
-    fetch();
+    fetchData();
   }, [user]);
 
   const setSelectedOrg = (orgId: string | null) => {
+    if (!isSuperAdmin) return; // non-super_admin cannot change org
     setSelectedOrgId(orgId);
     localStorage.setItem(STORAGE_KEY, orgId ?? "null");
   };
@@ -53,7 +67,7 @@ export const OrgProvider = ({ children }: { children: ReactNode }) => {
     : "Todos os Órgãos";
 
   return (
-    <OrgContext.Provider value={{ selectedOrgId, selectedOrgName, orgaos, loading, setSelectedOrg }}>
+    <OrgContext.Provider value={{ selectedOrgId, selectedOrgName, orgaos, loading, isSuperAdmin, setSelectedOrg }}>
       {children}
     </OrgContext.Provider>
   );
