@@ -53,11 +53,12 @@ function parseCsv(text: string): Record<string, string>[] {
 }
 
 export const CsvClassificationService = {
-  async classificarCsv(file: File, promptConfigurado: string): Promise<ClassificationResult> {
+  async classificarCsv(file: File, promptConfigurado: string, orgaoId?: string | null): Promise<ClassificationResult> {
     const text = await file.text();
     const rows = parseCsv(text);
 
     console.log("Prompt usuario", promptConfigurado);
+    console.log("Órgão ID:", orgaoId ?? "nenhum");
 
     if (rows.length === 0) {
       return {
@@ -72,7 +73,7 @@ export const CsvClassificationService = {
     }
 
     const { data, error } = await supabase.functions.invoke("classify-csv", {
-      body: { promptConfigurado, dadosCsv: rows },
+      body: { promptConfigurado, dadosCsv: rows, orgaoId: orgaoId || null },
     });
 
     if (error) {
