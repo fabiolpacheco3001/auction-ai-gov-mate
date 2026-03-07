@@ -17,6 +17,8 @@ interface ApiToken {
   ativo: boolean;
   created_at: string;
   last_used_at: string | null;
+  orgao_id: string | null;
+  orgaos?: { sigla: string } | null;
 }
 
 const ApiAccessToken = () => {
