@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Gavel, Loader2, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,26 +8,64 @@ import { Label } from "@/components/ui/label";
 
 const Login = () => {
   const { signIn } = useAuth();
-  const [email, setEmail] = useState("");
+  const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const resolveEmail = async (input: string): Promise<string> => {
+    // If user typed an email, use it directly
+    if (input.includes("@")) return input;
+
+    // Try to find email by login in orgao_usuarios via edge function or direct lookup
+    // For the admin user, use the hardcoded domain
+    const loginEmail = `${input}@alienagov.gov.br`;
+
+    // First try direct email login
+    return loginEmail;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    const loginEmail = email.includes("@") ? email : `${email}@alienagov.gov.br`;
-    const { error } = await signIn(loginEmail, password);
-    if (error) setError("Credenciais inválidas. Verifique seu login e senha.");
+    try {
+      let loginEmail = login.includes("@") ? login : `${login}@alienagov.gov.br`;
+
+      // Try login with constructed email first
+      const { error: firstError } = await signIn(loginEmail, password);
+
+      if (firstError) {
+        // If that fails and input wasn't an email, try looking up by login field
+        if (!login.includes("@")) {
+          // Use a public RPC or direct query to find the user's email by login
+          const { data: userData } = await supabase.functions.invoke("resolve-login", {
+            body: { login: login.trim() },
+          });
+
+          if (userData?.email) {
+            const { error: secondError } = await signIn(userData.email, password);
+            if (secondError) {
+              setError("Credenciais inválidas. Verifique seu login e senha.");
+            }
+          } else {
+            setError("Credenciais inválidas. Verifique seu login e senha.");
+          }
+        } else {
+          setError("Credenciais inválidas. Verifique seu login e senha.");
+        }
+      }
+    } catch {
+      setError("Erro ao realizar login. Tente novamente.");
+    }
+
     setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm space-y-8">
-        {/* Logo */}
         <div className="text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-hero mb-4">
             <Gavel className="w-8 h-8 text-primary-foreground" />
@@ -35,15 +74,14 @@ const Login = () => {
           <p className="text-muted-foreground text-sm mt-1">Sistema de Gestão de Alienação Patrimonial</p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="bg-card border border-border rounded-2xl p-6 shadow-card space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Login</Label>
+            <Label htmlFor="login">Login ou E-mail</Label>
             <Input
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin"
+              id="login"
+              value={login}
+              onChange={(e) => setLogin(e.target.value)}
+              placeholder="admin ou email@orgao.gov.br"
               autoComplete="username"
               required
             />
