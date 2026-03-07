@@ -24,7 +24,6 @@ interface Cidade { id: number; nome: string; }
 
 interface UserForm {
   nome: string;
-  email: string;
   login: string;
   senha: string;
   isAdmin: boolean;
@@ -40,7 +39,7 @@ interface ExistingUser {
 }
 
 const emptyUser = (): UserForm => ({
-  nome: "", email: "", login: "", senha: "", isAdmin: true, showPassword: false,
+  nome: "", login: "", senha: "", isAdmin: true, showPassword: false,
 });
 
 const CadastroOrgaos = () => {
@@ -179,7 +178,6 @@ const CadastroOrgaos = () => {
 
     usuarios.forEach((u, i) => {
       if (!u.nome.trim()) newErrors[`user_${i}_nome`] = "Nome é obrigatório";
-      if (!u.email.trim()) newErrors[`user_${i}_email`] = "E-mail é obrigatório";
       if (!u.login.trim()) newErrors[`user_${i}_login`] = "Login é obrigatório";
       if (!u.senha.trim()) newErrors[`user_${i}_senha`] = "Senha é obrigatória";
       if (u.senha.length > 0 && u.senha.length < 6) newErrors[`user_${i}_senha`] = "Senha deve ter no mínimo 6 caracteres";
@@ -220,7 +218,6 @@ const CadastroOrgaos = () => {
       for (const u of usuarios) {
         const res = await supabase.functions.invoke("create-org-user", {
           body: {
-            email: u.email.trim(),
             password: u.senha,
             nome: u.nome.trim(),
             login: u.login.trim(),
@@ -425,21 +422,16 @@ const CadastroOrgaos = () => {
                       )}
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Nome *</Label>
-                      <Input value={u.nome} onChange={e => updateUser(i, "nome", e.target.value)} placeholder="Nome completo" />
-                      {errors[`user_${i}_nome`] && <p className="text-xs text-destructive">{errors[`user_${i}_nome`]}</p>}
-                    </div>
-                    <div className="space-y-2">
-                      <Label>E-mail *</Label>
-                      <Input type="email" value={u.email} onChange={e => updateUser(i, "email", e.target.value)} placeholder="email@orgao.gov.br" />
-                      {errors[`user_${i}_email`] && <p className="text-xs text-destructive">{errors[`user_${i}_email`]}</p>}
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Login *</Label>
-                      <Input value={u.login} onChange={e => updateUser(i, "login", e.target.value)} placeholder="login.usuario" />
-                      {errors[`user_${i}_login`] && <p className="text-xs text-destructive">{errors[`user_${i}_login`]}</p>}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Nome *</Label>
+                        <Input value={u.nome} onChange={e => updateUser(i, "nome", e.target.value)} placeholder="Nome completo" />
+                        {errors[`user_${i}_nome`] && <p className="text-xs text-destructive">{errors[`user_${i}_nome`]}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Login *</Label>
+                        <Input value={u.login} onChange={e => updateUser(i, "login", e.target.value)} placeholder="login.usuario" />
+                        {errors[`user_${i}_login`] && <p className="text-xs text-destructive">{errors[`user_${i}_login`]}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label>Senha *</Label>
