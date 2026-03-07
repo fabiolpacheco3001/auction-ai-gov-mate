@@ -32,7 +32,7 @@ const formatCurrency = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const Relatorios = () => {
-  const { selectedOrgId, applyOrgFilter } = useOrgFilter();
+  const { selectedOrgId } = useOrgFilter();
 
   // Fetch processos
   const { data: processos = [], isLoading: loadingProcessos } = useQuery({
