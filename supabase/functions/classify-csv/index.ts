@@ -104,7 +104,17 @@ Cada lote deve conter apenas os itens que pertencem ao mesmo grupo conforme defi
 INSTRUÇÕES DE PRECIFICAÇÃO
 ==========================
 
-Para cada item, você deve obter o valor médio de venda em leilões públicos.
+Para cada item, você deve obter o valor médio de venda em cada site:
+- Analisar a descrição, categoria, estado, localização e demais dados disponíveis
+- Considerar cada URL da lista de sites_precificacao como uma fonte independente
+- Obter um valor médio de leilão separado para cada site
+- Calcular também o valor médio geral baseado nos valores estimados de todos os sites
+- Ignorar valores irreais ou fora do padrão de mercado
+- Usar aproximação inteligente baseada em similaridade com itens equivalentes
+- Se não houver confiança suficiente, retornar null
+- O campo "confianca" deve ser um número entre 0 e 1 indicando o grau de confiança da estimativa
+- Nunca omitir nenhum site da lista
+- Nunca inventar URLs — usar exatamente as URLs fornecidas
 
 Use:
 
@@ -154,7 +164,17 @@ Retorne APENAS um JSON válido no formato:
 "municipio": string,
 "quantidade": number,
 "valor": number,
-"valorMedioLeilao": number | null
+"precificacao": {
+            "valorMedioGeral": number | null,
+            "valorMedioPorSite": [
+              {
+                "url": string,
+                "valorMedio": number | null,
+                "confianca": number
+              }
+            ],
+            "quantidadeSites": number
+          }
 }
 ]
 }
@@ -166,6 +186,13 @@ Retorne APENAS um JSON válido no formato:
 "totalErros": number,
 "totalLotes": number
 }
+
+- O campo "precificacao.valorMedioPorSite" deve conter um objeto para CADA URL fornecida em sites_precificacao
+- O campo "url" dentro de valorMedioPorSite deve ser EXATAMENTE igual ao fornecido na lista
+- "valorMedio" deve ser um número float ou null
+- "confianca" deve ser um número entre 0 e 1
+- "valorMedioGeral" deve ser a média dos valorMedio válidos (não nulos)
+- "quantidadeSites" deve ser o total de sites considerados
 
 ====================================================================
 REGRAS OBRIGATÓRIAS FINAIS
