@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,11 +12,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Plus, Building2, Loader2, Trash2, ShieldCheck, Eye, EyeOff } from "lucide-react";
+import { CalendarIcon, Plus, Building2, Loader2, Trash2, ShieldCheck, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface UF {
@@ -38,19 +37,6 @@ interface UserForm {
   showPassword: boolean;
 }
 
-interface Orgao {
-  id: string;
-  nome: string;
-  sigla: string;
-  uf: string;
-  cidade: string;
-  data_inicio: string;
-  data_termino: string | null;
-  pacote_processos: number | null;
-  ativo: boolean;
-  created_at: string;
-}
-
 const emptyUser = (): UserForm => ({
   nome: "",
   email: "",
@@ -64,8 +50,8 @@ const CadastroOrgaos = () => {
   const { user } = useAuth();
   const { isSuperAdmin, loading: roleLoading } = useUserRole();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
-  // Form state
   const [nome, setNome] = useState("");
   const [sigla, setSigla] = useState("");
   const [uf, setUf] = useState("");
@@ -74,23 +60,15 @@ const CadastroOrgaos = () => {
   const [dataTermino, setDataTermino] = useState<Date>();
   const [pacoteProcessos, setPacoteProcessos] = useState("");
 
-  // IBGE
   const [ufs, setUfs] = useState<UF[]>([]);
   const [cidades, setCidades] = useState<Cidade[]>([]);
   const [loadingUfs, setLoadingUfs] = useState(false);
   const [loadingCidades, setLoadingCidades] = useState(false);
 
-  // Users
   const [usuarios, setUsuarios] = useState<UserForm[]>([emptyUser()]);
-
-  // Existing orgaos
-  const [orgaos, setOrgaos] = useState<Orgao[]>([]);
-  const [loadingOrgaos, setLoadingOrgaos] = useState(true);
-
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Fetch UFs
   useEffect(() => {
     const fetchUfs = async () => {
       setLoadingUfs(true);
@@ -106,13 +84,8 @@ const CadastroOrgaos = () => {
     fetchUfs();
   }, []);
 
-  // Fetch cidades when UF changes
   useEffect(() => {
-    if (!uf) {
-      setCidades([]);
-      setCidade("");
-      return;
-    }
+    if (!uf) { setCidades([]); setCidade(""); return; }
     const fetchCidades = async () => {
       setLoadingCidades(true);
       setCidade("");
@@ -127,17 +100,6 @@ const CadastroOrgaos = () => {
     };
     fetchCidades();
   }, [uf]);
-
-  // Fetch orgaos
-  useEffect(() => {
-    if (!isSuperAdmin || roleLoading) return;
-    const fetchOrgaos = async () => {
-      const { data } = await supabase.from("orgaos").select("*").order("created_at", { ascending: false });
-      setOrgaos((data as any) ?? []);
-      setLoadingOrgaos(false);
-    };
-    fetchOrgaos();
-  }, [isSuperAdmin, roleLoading]);
 
   const updateUser = (index: number, field: keyof UserForm, value: any) => {
     setUsuarios(prev => prev.map((u, i) => i === index ? { ...u, [field]: value } : u));
@@ -181,7 +143,6 @@ const CadastroOrgaos = () => {
 
     setSubmitting(true);
     try {
-      // 1. Create orgao
       const { data: orgao, error: orgaoError } = await supabase
         .from("orgaos")
         .insert({
@@ -198,9 +159,7 @@ const CadastroOrgaos = () => {
 
       if (orgaoError) throw orgaoError;
 
-      // 2. Create users via edge function
       for (const u of usuarios) {
-        const { data: session } = await supabase.auth.getSession();
         const res = await supabase.functions.invoke("create-org-user", {
           body: {
             email: u.email.trim(),
@@ -218,21 +177,7 @@ const CadastroOrgaos = () => {
       }
 
       toast({ title: "Órgão criado com sucesso!", description: `${nome} foi cadastrado com ${usuarios.length} usuário(s).` });
-
-      // Reset form
-      setNome("");
-      setSigla("");
-      setUf("");
-      setCidade("");
-      setDataInicio(undefined);
-      setDataTermino(undefined);
-      setPacoteProcessos("");
-      setUsuarios([emptyUser()]);
-      setErrors({});
-
-      // Refresh list
-      const { data: updated } = await supabase.from("orgaos").select("*").order("created_at", { ascending: false });
-      setOrgaos((updated as any) ?? []);
+      navigate("/admin/orgaos");
     } catch (err: any) {
       toast({ title: "Erro ao criar órgão", description: err.message, variant: "destructive" });
     }
@@ -257,14 +202,18 @@ const CadastroOrgaos = () => {
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">Cadastro de Órgãos</h1>
-        <p className="text-muted-foreground mt-1">Gerencie os órgãos e seus administradores</p>
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/orgaos")}>
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-display font-bold text-foreground">Novo Órgão</h1>
+          <p className="text-muted-foreground mt-1">Preencha os dados do órgão e seus usuários</p>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Orgao data */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -274,53 +223,36 @@ const CadastroOrgaos = () => {
             <CardDescription>Preencha as informações do novo órgão</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Nome */}
             <div className="space-y-2 lg:col-span-2">
               <Label htmlFor="org-nome">Nome *</Label>
               <Input id="org-nome" value={nome} onChange={e => setNome(e.target.value)} placeholder="Nome do órgão" />
               {errors.nome && <p className="text-xs text-destructive">{errors.nome}</p>}
             </div>
-
-            {/* Sigla */}
             <div className="space-y-2">
               <Label htmlFor="org-sigla">Sigla *</Label>
               <Input id="org-sigla" value={sigla} onChange={e => setSigla(e.target.value)} placeholder="Ex: PMSP" maxLength={10} />
               {errors.sigla && <p className="text-xs text-destructive">{errors.sigla}</p>}
             </div>
-
-            {/* UF */}
             <div className="space-y-2">
               <Label>UF *</Label>
               <Select value={uf} onValueChange={setUf} disabled={loadingUfs}>
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingUfs ? "Carregando UFs..." : "Selecione a UF"} />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={loadingUfs ? "Carregando UFs..." : "Selecione a UF"} /></SelectTrigger>
                 <SelectContent>
-                  {ufs.map(u => (
-                    <SelectItem key={u.sigla} value={u.sigla}>{u.sigla} - {u.nome}</SelectItem>
-                  ))}
+                  {ufs.map(u => (<SelectItem key={u.sigla} value={u.sigla}>{u.sigla} - {u.nome}</SelectItem>))}
                 </SelectContent>
               </Select>
               {errors.uf && <p className="text-xs text-destructive">{errors.uf}</p>}
             </div>
-
-            {/* Cidade */}
             <div className="space-y-2">
               <Label>Cidade *</Label>
               <Select value={cidade} onValueChange={setCidade} disabled={loadingCidades || !uf}>
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingCidades ? "Carregando cidades..." : "Selecione a cidade"} />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={loadingCidades ? "Carregando cidades..." : "Selecione a cidade"} /></SelectTrigger>
                 <SelectContent>
-                  {cidades.map(c => (
-                    <SelectItem key={c.id} value={c.nome}>{c.nome}</SelectItem>
-                  ))}
+                  {cidades.map(c => (<SelectItem key={c.id} value={c.nome}>{c.nome}</SelectItem>))}
                 </SelectContent>
               </Select>
               {errors.cidade && <p className="text-xs text-destructive">{errors.cidade}</p>}
             </div>
-
-            {/* Data Início */}
             <div className="space-y-2">
               <Label>Data de Início *</Label>
               <Popover>
@@ -336,8 +268,6 @@ const CadastroOrgaos = () => {
               </Popover>
               {errors.dataInicio && <p className="text-xs text-destructive">{errors.dataInicio}</p>}
             </div>
-
-            {/* Data Término */}
             <div className="space-y-2">
               <Label>Data de Término</Label>
               <Popover>
@@ -352,8 +282,6 @@ const CadastroOrgaos = () => {
                 </PopoverContent>
               </Popover>
             </div>
-
-            {/* Pacote Processos */}
             <div className="space-y-2">
               <Label htmlFor="org-pacote">Pacote de Processos</Label>
               <Input id="org-pacote" type="number" min={0} value={pacoteProcessos} onChange={e => setPacoteProcessos(e.target.value)} placeholder="Opcional" />
@@ -361,7 +289,6 @@ const CadastroOrgaos = () => {
           </CardContent>
         </Card>
 
-        {/* Users */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -420,13 +347,7 @@ const CadastroOrgaos = () => {
                         onChange={e => updateUser(i, "senha", e.target.value)}
                         placeholder="Mínimo 6 caracteres"
                       />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                        onClick={() => updateUser(i, "showPassword", !u.showPassword)}
-                      >
+                      <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={() => updateUser(i, "showPassword", !u.showPassword)}>
                         {u.showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </Button>
                     </div>
@@ -438,62 +359,16 @@ const CadastroOrgaos = () => {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end">
+        <div className="flex justify-between">
+          <Button type="button" variant="outline" onClick={() => navigate("/admin/orgaos")}>
+            Cancelar
+          </Button>
           <Button type="submit" disabled={submitting} className="bg-accent text-accent-foreground hover:bg-accent/90 px-8">
             {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Building2 className="w-4 h-4 mr-2" />}
             Cadastrar Órgão
           </Button>
         </div>
       </form>
-
-      {/* Listing */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Órgãos Cadastrados</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loadingOrgaos ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : orgaos.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">Nenhum órgão cadastrado ainda.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Sigla</TableHead>
-                    <TableHead>UF</TableHead>
-                    <TableHead>Cidade</TableHead>
-                    <TableHead>Início</TableHead>
-                    <TableHead>Processos</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orgaos.map(org => (
-                    <TableRow key={org.id}>
-                      <TableCell className="font-medium">{org.nome}</TableCell>
-                      <TableCell>{org.sigla}</TableCell>
-                      <TableCell>{org.uf}</TableCell>
-                      <TableCell>{org.cidade}</TableCell>
-                      <TableCell>{new Date(org.data_inicio).toLocaleDateString("pt-BR")}</TableCell>
-                      <TableCell>{org.pacote_processos ?? "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant={org.ativo ? "default" : "secondary"}>
-                          {org.ativo ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 };
