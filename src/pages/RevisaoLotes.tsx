@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useOrgFilter } from "@/hooks/useOrgFilter";
 import { toast } from "sonner";
 import {
   ArrowLeft,
