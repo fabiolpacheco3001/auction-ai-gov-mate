@@ -22,6 +22,8 @@ interface ApiToken {
 const ApiAccessToken = () => {
   const { user } = useAuth();
   const { selectedOrgId } = useOrgFilter();
+  const { role } = useUserRole();
+  const isSuperAdmin = role === "super_admin";
   const [tokens, setTokens] = useState<ApiToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -30,7 +32,8 @@ const ApiAccessToken = () => {
 
   const fetchTokens = async () => {
     if (!user) return;
-    let query = supabase.from("api_tokens").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    let query = supabase.from("api_tokens").select("*").order("created_at", { ascending: false });
+    if (!isSuperAdmin) query = query.eq("user_id", user.id);
     if (selectedOrgId) query = query.eq("orgao_id", selectedOrgId);
     const { data, error } = await query;
     if (error) {
