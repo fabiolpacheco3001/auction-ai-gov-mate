@@ -3,8 +3,9 @@ import { Upload, FileSpreadsheet, FileText, CheckCircle2, Loader2, ArrowRight, P
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useNavigate, Link } from "react-router-dom";
-import { ConfiguracaoSistemaService } from "@/services/ConfiguracaoSistemaService";
 import { CsvClassificationService, ClassificationResult } from "@/services/CsvClassificationService";
+import { useOrgFilter } from "@/hooks/useOrgFilter";
+import { supabase } from "@/integrations/supabase/client";
 
 const generateTemplateCSV = () => {
   const BOM = "\uFEFF";
@@ -36,6 +37,7 @@ const generateTemplateCSV = () => {
 
 const NovoProcesso = () => {
   const navigate = useNavigate();
+  const { selectedOrgId } = useOrgFilter();
   const [dragOver, setDragOver] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
@@ -57,8 +59,16 @@ const NovoProcesso = () => {
     const isCsv = f.name.toLowerCase().endsWith(".csv");
     if (isCsv) {
       try {
-        const config = await ConfiguracaoSistemaService.carregar();
-        const result = await CsvClassificationService.classificarCsv(f, config.promptClassificacaoCsv);
+        // Load org-specific prompt
+        let configQuery = supabase.from("configuracao_sistema").select("prompt_classificacao_csv");
+        if (selectedOrgId) {
+          configQuery = configQuery.eq("orgao_id", selectedOrgId);
+        } else {
+          configQuery = configQuery.is("orgao_id", null);
+        }
+        const { data: configData } = await configQuery.maybeSingle();
+        const promptConfigurado = configData?.prompt_classificacao_csv || "";
+        const result = await CsvClassificationService.classificarCsv(f, promptConfigurado, selectedOrgId);
         setClassificationResult(result);
       } catch {
         // fallback — continue without classification
