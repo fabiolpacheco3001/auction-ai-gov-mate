@@ -62,7 +62,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create auth user
+    // Create auth user or find existing one
+    let userId: string;
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
       email,
       password,
@@ -70,26 +71,53 @@ Deno.serve(async (req) => {
     });
 
     if (createError) {
-      return new Response(JSON.stringify({ error: createError.message }), {
+      if (createError.message.includes("already been registered")) {
+        // User exists — look up by email
+        const { data: { users }, error: listErr } = await adminClient.auth.admin.listUsers();
+        const existing = users?.find((u: any) => u.email === email);
+        if (!existing || listErr) {
+          return new Response(JSON.stringify({ error: "Usuário já existe mas não foi possível localizá-lo." }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        userId = existing.id;
+      } else {
+        return new Response(JSON.stringify({ error: createError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      userId = newUser.user.id;
+    }
+
+    // Check if already linked to this org
+    const { data: existingLink } = await adminClient
+      .from("orgao_usuarios")
+      .select("id")
+      .eq("orgao_id", orgao_id)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (existingLink) {
+      return new Response(JSON.stringify({ error: "Este usuário já está vinculado a este órgão." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Insert into orgao_usuarios
     const { error: insertError } = await adminClient
       .from("orgao_usuarios")
       .insert({
         orgao_id,
-        user_id: newUser.user.id,
+        user_id: userId,
         nome,
         login,
         is_admin: is_admin ?? false,
       });
 
     if (insertError) {
-      // Rollback: delete the auth user
-      await adminClient.auth.admin.deleteUser(newUser.user.id);
       return new Response(JSON.stringify({ error: insertError.message }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -98,13 +126,22 @@ Deno.serve(async (req) => {
 
     // If org admin, add org_admin role
     if (is_admin) {
-      await adminClient.from("user_roles").insert({
-        user_id: newUser.user.id,
-        role: "org_admin",
-      });
+      const { data: existingRole } = await adminClient
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("role", "org_admin")
+        .maybeSingle();
+
+      if (!existingRole) {
+        await adminClient.from("user_roles").insert({
+          user_id: userId,
+          role: "org_admin",
+        });
+      }
     }
 
-    return new Response(JSON.stringify({ success: true, user_id: newUser.user.id }), {
+    return new Response(JSON.stringify({ success: true, user_id: userId }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
