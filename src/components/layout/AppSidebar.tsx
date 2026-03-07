@@ -5,17 +5,18 @@ import {
   PackageSearch,
   FileText,
   BarChart3,
-  DollarSign,
   Settings,
   Key,
   Gavel,
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Building2,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -28,10 +29,15 @@ const navItems = [
   { to: "/configuracoes/api-token", label: "API Access Token", icon: Key },
 ];
 
+const adminItems = [
+  { to: "/admin/orgaos", label: "Cadastro de Órgãos", icon: Building2 },
+];
+
 const AppSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const { signOut } = useAuth();
+  const { isSuperAdmin } = useUserRole();
 
   return (
     <aside
@@ -74,6 +80,33 @@ const AppSidebar = () => {
             </NavLink>
           );
         })}
+        {isSuperAdmin && (
+          <>
+            {!collapsed && (
+              <div className="pt-4 pb-1 px-3">
+                <span className="text-[10px] uppercase tracking-widest text-sidebar-foreground/40 font-semibold">Administração</span>
+              </div>
+            )}
+            {adminItems.map((item) => {
+              const isActive = location.pathname === item.to;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                    isActive
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
+                  )}
+                >
+                  <item.icon className="w-5 h-5 shrink-0" />
+                  {!collapsed && <span>{item.label}</span>}
+                </NavLink>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       {/* Org info */}
