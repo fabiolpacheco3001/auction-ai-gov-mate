@@ -24,7 +24,6 @@ interface Cidade { id: number; nome: string; }
 
 interface UserForm {
   nome: string;
-  email: string;
   login: string;
   senha: string;
   isAdmin: boolean;
@@ -40,7 +39,7 @@ interface ExistingUser {
 }
 
 const emptyUser = (): UserForm => ({
-  nome: "", email: "", login: "", senha: "", isAdmin: true, showPassword: false,
+  nome: "", login: "", senha: "", isAdmin: true, showPassword: false,
 });
 
 const CadastroOrgaos = () => {
