@@ -21,6 +21,7 @@ export type Database = {
           id: string
           last_used_at: string | null
           nome: string
+          orgao_id: string | null
           token: string
           user_id: string
         }
@@ -30,6 +31,7 @@ export type Database = {
           id?: string
           last_used_at?: string | null
           nome?: string
+          orgao_id?: string | null
           token?: string
           user_id: string
         }
@@ -39,10 +41,19 @@ export type Database = {
           id?: string
           last_used_at?: string | null
           nome?: string
+          orgao_id?: string | null
           token?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "api_tokens_orgao_id_fkey"
+            columns: ["orgao_id"]
+            isOneToOne: false
+            referencedRelation: "orgaos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bens: {
         Row: {
@@ -111,6 +122,7 @@ export type Database = {
           data_atualizacao: string
           id: string
           logo_url: string | null
+          orgao_id: string | null
           prompt_classificacao_csv: string
           usuario_atualizacao: string
         }
@@ -118,6 +130,7 @@ export type Database = {
           data_atualizacao?: string
           id?: string
           logo_url?: string | null
+          orgao_id?: string | null
           prompt_classificacao_csv: string
           usuario_atualizacao?: string
         }
@@ -125,10 +138,19 @@ export type Database = {
           data_atualizacao?: string
           id?: string
           logo_url?: string | null
+          orgao_id?: string | null
           prompt_classificacao_csv?: string
           usuario_atualizacao?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "configuracao_sistema_orgao_id_fkey"
+            columns: ["orgao_id"]
+            isOneToOne: false
+            referencedRelation: "orgaos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documentos: {
         Row: {
@@ -136,6 +158,7 @@ export type Database = {
           data: string
           id: string
           nome: string
+          orgao_id: string | null
           processo_id: string | null
           processo_titulo: string
           status: string
@@ -146,6 +169,7 @@ export type Database = {
           data?: string
           id?: string
           nome: string
+          orgao_id?: string | null
           processo_id?: string | null
           processo_titulo?: string
           status?: string
@@ -156,12 +180,20 @@ export type Database = {
           data?: string
           id?: string
           nome?: string
+          orgao_id?: string | null
           processo_id?: string | null
           processo_titulo?: string
           status?: string
           tipo?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "documentos_orgao_id_fkey"
+            columns: ["orgao_id"]
+            isOneToOne: false
+            referencedRelation: "orgaos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "documentos_processo_id_fkey"
             columns: ["processo_id"]
@@ -339,6 +371,7 @@ export type Database = {
           data_upload: string
           id: string
           orgao: string
+          orgao_id: string | null
           status: string
           titulo: string
           total_bens: number
@@ -353,6 +386,7 @@ export type Database = {
           data_upload?: string
           id?: string
           orgao: string
+          orgao_id?: string | null
           status?: string
           titulo: string
           total_bens?: number
@@ -367,6 +401,7 @@ export type Database = {
           data_upload?: string
           id?: string
           orgao?: string
+          orgao_id?: string | null
           status?: string
           titulo?: string
           total_bens?: number
@@ -374,13 +409,22 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "processos_orgao_id_fkey"
+            columns: ["orgao_id"]
+            isOneToOne: false
+            referencedRelation: "orgaos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sites_precificacao: {
         Row: {
           created_at: string
           descricao: string
           id: string
+          orgao_id: string | null
           url: string
           user_id: string
         }
@@ -388,6 +432,7 @@ export type Database = {
           created_at?: string
           descricao?: string
           id?: string
+          orgao_id?: string | null
           url: string
           user_id: string
         }
@@ -395,10 +440,19 @@ export type Database = {
           created_at?: string
           descricao?: string
           id?: string
+          orgao_id?: string | null
           url?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sites_precificacao_orgao_id_fkey"
+            columns: ["orgao_id"]
+            isOneToOne: false
+            referencedRelation: "orgaos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
