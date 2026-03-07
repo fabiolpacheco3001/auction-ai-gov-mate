@@ -104,7 +104,7 @@ Cada lote deve conter apenas os itens que pertencem ao mesmo grupo conforme defi
 INSTRUÇÕES DE PRECIFICAÇÃO
 ==========================
 
-Para cada item, você deve estimar o valor médio de venda em leilões públicos.
+Para cada item, você deve obter o valor médio de venda em leilões públicos.
 
 Use:
 
@@ -118,7 +118,7 @@ Considere os sites de precificação fornecidos como referência de mercado.
 
 Regras:
 
-* estimar valor realista de mercado
+* obter valor realista de mercado
 * ignorar valores irreais
 * usar similaridade com itens equivalentes
 * usar aproximação inteligente quando necessário
@@ -127,7 +127,7 @@ Retorne:
 
 "valorMedioLeilao": number | null
 
-Retorne null se não houver confiança suficiente.
+Retorne null se a confiança for inferior a 70 porcento.
 
 ====================================================================
 FORMATO DE RESPOSTA OBRIGATÓRIO
