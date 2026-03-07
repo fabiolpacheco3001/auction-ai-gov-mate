@@ -22,7 +22,7 @@ interface ApiToken {
 const ApiAccessToken = () => {
   const { user } = useAuth();
   const { selectedOrgId } = useOrgFilter();
-  const { isSuperAdmin } = useUserRole();
+  const { isSuperAdmin, loading: roleLoading } = useUserRole();
   const [tokens, setTokens] = useState<ApiToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -30,7 +30,8 @@ const ApiAccessToken = () => {
   const [visibleTokens, setVisibleTokens] = useState<Set<string>>(new Set());
 
   const fetchTokens = async () => {
-    if (!user) return;
+    if (!user || roleLoading) return;
+    setLoading(true);
     let query = supabase.from("api_tokens").select("*").order("created_at", { ascending: false });
     if (!isSuperAdmin) query = query.eq("user_id", user.id);
     if (selectedOrgId) query = query.eq("orgao_id", selectedOrgId);
@@ -46,7 +47,7 @@ const ApiAccessToken = () => {
 
   useEffect(() => {
     fetchTokens();
-  }, [user, selectedOrgId]);
+  }, [user, selectedOrgId, isSuperAdmin, roleLoading]);
 
   const handleCreate = async () => {
     if (!user) return;
