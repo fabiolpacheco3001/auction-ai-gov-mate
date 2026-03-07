@@ -370,7 +370,6 @@ export type Database = {
           created_at: string
           data_upload: string
           id: string
-          orgao: string
           orgao_id: string | null
           status: string
           titulo: string
@@ -385,7 +384,6 @@ export type Database = {
           created_at?: string
           data_upload?: string
           id?: string
-          orgao: string
           orgao_id?: string | null
           status?: string
           titulo: string
@@ -400,7 +398,6 @@ export type Database = {
           created_at?: string
           data_upload?: string
           id?: string
-          orgao?: string
           orgao_id?: string | null
           status?: string
           titulo?: string
