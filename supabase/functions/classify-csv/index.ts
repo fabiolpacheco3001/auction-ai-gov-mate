@@ -111,29 +111,13 @@ Para cada item, você deve obter o valor médio de venda em cada site:
 - Calcular também o valor médio geral baseado nos valores estimados de todos os sites
 - Ignorar valores irreais ou fora do padrão de mercado
 - Usar aproximação inteligente baseada em similaridade com itens equivalentes
-- Se não houver confiança suficiente, retornar null
+- Se não houver confiança suficiente (inferior a 0.75), retornar null para o valorMedio daquele site
 - O campo "confianca" deve ser um número entre 0 e 1 indicando o grau de confiança da estimativa
+- Não considere itens cuja confiança seja inferior a 0.75
+- Para cada site, retorne a quantidade de itens/correspondências considerados na estimativa
+- Para cada site, retorne uma lista com a url e o valor de cada correspondência utilizada na obtenção do valor médio
 - Nunca omitir nenhum site da lista
 - Nunca inventar URLs — usar exatamente as URLs fornecidas
-
-Use:
-
-* descrição
-* categoria
-* estado
-* localização
-* e demais dados disponíveis
-
-Considere os sites de precificação fornecidos como referência de mercado.
-
-Regras:
-
-* obter valor realista de mercado
-* ignorar valores irreais
-* usar similaridade com itens equivalentes
-* usar aproximação inteligente quando necessário
-
-Retorne null se não houver confiança suficiente (inferior a 0.7).
 
 ====================================================================
 FORMATO DE RESPOSTA OBRIGATÓRIO
@@ -166,7 +150,14 @@ Retorne APENAS um JSON válido no formato:
               {
                 "url": string,
                 "valorMedio": number | null,
-                "confianca": number
+                "confianca": number,
+                "itensConsiderados": number,
+                "correspondencias": [
+                  {
+                    "url": string,
+                    "valor": number
+                  }
+                ]
               }
             ],
             "quantidadeSites": number
@@ -186,8 +177,10 @@ Retorne APENAS um JSON válido no formato:
 - O campo "precificacao.valorMedioPorSite" deve conter um objeto para CADA URL fornecida em sites_precificacao
 - O campo "url" dentro de valorMedioPorSite deve ser EXATAMENTE igual ao fornecido na lista
 - "valorMedio" deve ser um número float ou null
-- "confianca" deve ser um número entre 0 e 1
-- "valorMedioGeral" deve ser a média dos valorMedio válidos (não nulos)
+- "confianca" deve ser um número entre 0 e 1. Não considere itens com confiança inferior a 0.75
+- "itensConsiderados" deve ser o número de correspondências usadas para calcular o valorMedio
+- "correspondencias" deve ser uma lista com { "url": string, "valor": number } de cada item usado no cálculo
+- "valorMedioGeral" deve ser a média dos valorMedio válidos (não nulos e com confiança >= 0.75)
 - "quantidadeSites" deve ser o total de sites considerados
 
 ====================================================================
