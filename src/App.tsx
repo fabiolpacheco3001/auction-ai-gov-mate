@@ -13,7 +13,7 @@ import LotesGerados from "@/pages/LotesGerados";
 import RevisaoLotes from "@/pages/RevisaoLotes";
 import Documentos from "@/pages/Documentos";
 import Relatorios from "@/pages/Relatorios";
-import ConfiguracaoClassificacaoCsv from "@/pages/ConfiguracaoClassificacaoCsv";
+
 import ConfiguracaoPrecificacao from "@/pages/ConfiguracaoPrecificacao";
 import ApiAccessToken from "@/pages/ApiAccessToken";
 import CadastroOrgaos from "@/pages/CadastroOrgaos";
@@ -72,7 +72,7 @@ const ProtectedRoutes = () => {
           <Route path="/revisao-lotes" element={<RevisaoLotes />} />
           <Route path="/documentos" element={<Documentos />} />
           <Route path="/relatorios" element={<Relatorios />} />
-          <Route path="/configuracoes/classificacao-csv" element={<ConfiguracaoClassificacaoCsv />} />
+          
           <Route path="/configuracoes/precificacao" element={<ConfiguracaoPrecificacao />} />
           <Route path="/configuracoes/api-token" element={<ApiAccessToken />} />
           <Route path="/admin/orgaos" element={<SuperAdminRoute><ListaOrgaos /></SuperAdminRoute>} />

@@ -7,9 +7,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Globe, Loader2, Save, Upload, Trash2, Settings } from "lucide-react";
+import { Globe, Loader2, Save, Upload, Trash2, Settings, FileCode2, RotateCcw, Info } from "lucide-react";
 import { useOrgFilter } from "@/hooks/useOrgFilter";
+
+const PROMPT_PADRAO = `Classifique os bens patrimoniais do CSV seguindo estas regras:
+
+1. CATEGORIAS: Classifique cada item em uma das categorias: veículos, eletrônicos, móveis, maquinário ou outros.
+2. VALIDAÇÃO DE VALORES: Verifique se os valores estimados são numéricos e positivos. Sinalize valores zerados ou negativos.
+3. ESTADO DE CONSERVAÇÃO: Valide se o estado informado é um dos valores aceitos: bom, regular, ruim ou inservível.
+4. TOMBAMENTO: Verifique se o número de tombamento segue o padrão esperado (ex: VEI-2010-001).
+5. INCONSISTÊNCIAS: Identifique registros com campos obrigatórios vazios (descrição, categoria, localização).
+6. DUPLICATAS: Sinalize possíveis itens duplicados com base no número de tombamento.
+7. Gere os lotes agrupados por Municipio e Categoria.`;
 
 interface SiteRow {
   id: string | null;
@@ -107,11 +118,70 @@ const ConfiguracaoPrecificacao = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  // ── Prompt de Classificação CSV
+  const [prompt, setPrompt] = useState("");
+  const [promptLastUpdate, setPromptLastUpdate] = useState("");
+  const [savingPrompt, setSavingPrompt] = useState(false);
+
   useEffect(() => {
     if (configData?.logo_url) {
       setLogoUrl(configData.logo_url);
     }
+    if (configData?.prompt_classificacao_csv) {
+      setPrompt(configData.prompt_classificacao_csv);
+    } else {
+      setPrompt(PROMPT_PADRAO);
+    }
   }, [configData]);
+
+  const handleSavePrompt = async () => {
+    if (!prompt.trim()) {
+      toast({ title: "Erro", description: "O prompt não pode estar vazio.", variant: "destructive" });
+      return;
+    }
+    setSavingPrompt(true);
+    const now = new Date().toISOString();
+    if (configData?.id) {
+      await supabase.from("configuracao_sistema").update({
+        prompt_classificacao_csv: prompt,
+        data_atualizacao: now,
+        usuario_atualizacao: "admin",
+      }).eq("id", configData.id);
+    } else {
+      await supabase.from("configuracao_sistema").insert({
+        prompt_classificacao_csv: prompt,
+        orgao_id: selectedOrgId || null,
+        data_atualizacao: now,
+        usuario_atualizacao: "admin",
+      });
+    }
+    setPromptLastUpdate(now);
+    setSavingPrompt(false);
+    queryClient.invalidateQueries({ queryKey: ["configuracao-sistema-logo"] });
+    toast({ title: "Configuração salva", description: "O prompt de classificação foi atualizado com sucesso." });
+  };
+
+  const handleRestorePrompt = async () => {
+    setPrompt(PROMPT_PADRAO);
+    const now = new Date().toISOString();
+    if (configData?.id) {
+      await supabase.from("configuracao_sistema").update({
+        prompt_classificacao_csv: PROMPT_PADRAO,
+        data_atualizacao: now,
+        usuario_atualizacao: "admin",
+      }).eq("id", configData.id);
+    } else {
+      await supabase.from("configuracao_sistema").insert({
+        prompt_classificacao_csv: PROMPT_PADRAO,
+        orgao_id: selectedOrgId || null,
+        data_atualizacao: now,
+        usuario_atualizacao: "admin",
+      });
+    }
+    setPromptLastUpdate(now);
+    queryClient.invalidateQueries({ queryKey: ["configuracao-sistema-logo"] });
+    toast({ title: "Prompt restaurado", description: "O prompt padrão do sistema foi restaurado." });
+  };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -221,6 +291,48 @@ const ConfiguracaoPrecificacao = () => {
                 {logoUrl ? "Alterar Logo" : "Fazer Upload"}
               </Button>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Classificação CSV ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileCode2 className="w-5 h-5" />
+            Prompt de Classificação CSV
+          </CardTitle>
+          <CardDescription>
+            Defina o prompt utilizado pela IA para validar, classificar e processar os dados importados via CSV.
+            {promptLastUpdate && (
+              <span className="block mt-1">Última atualização: {new Date(promptLastUpdate).toLocaleString("pt-BR")}</span>
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="promptClassificacaoCsv">Prompt de Classificação e Validação</Label>
+            <Textarea
+              id="promptClassificacaoCsv"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Descreva aqui as regras de validação e classificação dos dados do CSV."
+              className="min-h-[300px] font-mono text-sm leading-relaxed"
+            />
+            <p className="text-xs text-muted-foreground flex items-start gap-1.5">
+              <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              Este prompt será utilizado pelo sistema sempre que um arquivo CSV for importado na tela de Novo Processo.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button onClick={handleSavePrompt} disabled={savingPrompt} className="bg-accent text-accent-foreground hover:bg-accent/90">
+              <Save className="w-4 h-4 mr-2" />
+              {savingPrompt ? "Salvando..." : "Salvar Prompt"}
+            </Button>
+            <Button variant="outline" onClick={handleRestorePrompt}>
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Restaurar Padrão
+            </Button>
           </div>
         </CardContent>
       </Card>
