@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useOrgFilter } from "@/hooks/useOrgFilter";
 
 const statusStyles: Record<string, string> = {
   rascunho: "bg-warning/10 text-warning",
@@ -19,10 +20,14 @@ const statusStyles: Record<string, string> = {
 };
 
 const Documentos = () => {
+  const { selectedOrgId } = useOrgFilter();
+
   const { data: documentos = [] } = useQuery({
-    queryKey: ["documentos"],
+    queryKey: ["documentos", selectedOrgId],
     queryFn: async () => {
-      const { data } = await supabase.from("documentos").select("*").order("created_at", { ascending: false });
+      let query = supabase.from("documentos").select("*").order("created_at", { ascending: false });
+      if (selectedOrgId) query = query.eq("orgao_id", selectedOrgId);
+      const { data } = await query;
       return data ?? [];
     },
   });
