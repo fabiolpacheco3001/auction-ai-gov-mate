@@ -31,7 +31,7 @@ serve(async (req) => {
     // Validate API token
     const { data: tokenRow, error: tokenErr } = await supabaseAdmin
       .from("api_tokens")
-      .select("id, user_id, ativo")
+      .select("id, user_id, ativo, orgao_id")
       .eq("token", token)
       .single();
 
@@ -57,7 +57,7 @@ serve(async (req) => {
 
     // Parse body
     const body = await req.json();
-    const { titulo, orgao, itens } = body;
+    const { titulo, itens } = body;
 
     if (!titulo || typeof titulo !== "string") {
       return new Response(
@@ -343,8 +343,8 @@ REGRAS OBRIGATÓRIAS FINAIS
       .from("processos")
       .insert({
         titulo,
-        orgao: orgao || "Não informado",
         user_id: tokenRow.user_id,
+        orgao_id: tokenRow.orgao_id,
         total_bens: totalBens,
         total_lotes: lotes.length,
         arrecadacao_estimada: arrecadacaoEstimada,
