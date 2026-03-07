@@ -57,10 +57,24 @@ const ConfiguracaoPrecificacao = () => {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
-      await supabase.from("sites_precificacao").delete().eq("user_id", user.id);
+
+      // Delete existing sites for this org context
+      let deleteQuery = supabase.from("sites_precificacao").delete().eq("user_id", user.id);
+      if (selectedOrgId) {
+        deleteQuery = deleteQuery.eq("orgao_id", selectedOrgId);
+      } else {
+        deleteQuery = deleteQuery.is("orgao_id", null);
+      }
+      await deleteQuery;
+
       const toInsert = rows
         .filter((r) => r.url.trim())
-        .map((r) => ({ url: r.url.trim(), descricao: r.descricao.trim(), user_id: user.id }));
+        .map((r) => ({
+          url: r.url.trim(),
+          descricao: r.descricao.trim(),
+          user_id: user.id,
+          orgao_id: selectedOrgId || null,
+        }));
       if (toInsert.length > 0) {
         const { error } = await supabase.from("sites_precificacao").insert(toInsert);
         if (error) throw error;
@@ -77,13 +91,15 @@ const ConfiguracaoPrecificacao = () => {
 
   // ── Logo do órgão
   const { data: configData, isLoading: isLoadingConfig } = useQuery({
-    queryKey: ["configuracao-sistema-logo"],
+    queryKey: ["configuracao-sistema-logo", selectedOrgId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("configuracao_sistema")
-        .select("logo_url")
-        .eq("id", "config-1")
-        .maybeSingle();
+      let query = supabase.from("configuracao_sistema").select("logo_url, prompt_classificacao_csv, id");
+      if (selectedOrgId) {
+        query = query.eq("orgao_id", selectedOrgId);
+      } else {
+        query = query.is("orgao_id", null);
+      }
+      const { data } = await query.maybeSingle();
       return data;
     },
   });
@@ -119,13 +135,21 @@ const ConfiguracaoPrecificacao = () => {
       const publicUrl = urlData.publicUrl;
 
       // Upsert into configuracao_sistema
-      await supabase.from("configuracao_sistema").upsert({
-        id: "config-1",
-        logo_url: publicUrl,
-        prompt_classificacao_csv: (configData as any)?.prompt_classificacao_csv || "",
-        data_atualizacao: new Date().toISOString(),
-        usuario_atualizacao: "admin",
-      });
+      if (configData?.id) {
+        await supabase.from("configuracao_sistema").update({
+          logo_url: publicUrl,
+          data_atualizacao: new Date().toISOString(),
+          usuario_atualizacao: "admin",
+        }).eq("id", configData.id);
+      } else {
+        await supabase.from("configuracao_sistema").insert({
+          logo_url: publicUrl,
+          orgao_id: selectedOrgId || null,
+          prompt_classificacao_csv: "",
+          data_atualizacao: new Date().toISOString(),
+          usuario_atualizacao: "admin",
+        });
+      }
 
       setLogoUrl(publicUrl);
       queryClient.invalidateQueries({ queryKey: ["configuracao-sistema-logo"] });
@@ -141,7 +165,9 @@ const ConfiguracaoPrecificacao = () => {
 
   const handleRemoveLogo = async () => {
     try {
-      await supabase.from("configuracao_sistema").update({ logo_url: null }).eq("id", "config-1");
+      if (configData?.id) {
+        await supabase.from("configuracao_sistema").update({ logo_url: null }).eq("id", configData.id);
+      }
       setLogoUrl(null);
       queryClient.invalidateQueries({ queryKey: ["configuracao-sistema-logo"] });
       toast({ title: "Logo removida" });

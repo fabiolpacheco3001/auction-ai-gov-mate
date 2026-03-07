@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrgFilter } from "@/hooks/useOrgFilter";
 
 const PROMPT_PADRAO = `Classifique os bens patrimoniais do CSV seguindo estas regras:
 
@@ -18,22 +19,30 @@ const PROMPT_PADRAO = `Classifique os bens patrimoniais do CSV seguindo estas re
 
 const ConfiguracaoClassificacaoCsv = () => {
   const { toast } = useToast();
+  const { selectedOrgId } = useOrgFilter();
   const [prompt, setPrompt] = useState("");
   const [lastUpdate, setLastUpdate] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase.from("configuracao_sistema").select("*").eq("id", "config-1").maybeSingle();
+      let query = supabase.from("configuracao_sistema").select("*");
+      if (selectedOrgId) {
+        query = query.eq("orgao_id", selectedOrgId);
+      } else {
+        query = query.is("orgao_id", null);
+      }
+      const { data } = await query.maybeSingle();
       if (data) {
         setPrompt(data.prompt_classificacao_csv);
         setLastUpdate(data.data_atualizacao);
       } else {
         setPrompt(PROMPT_PADRAO);
+        setLastUpdate("");
       }
     };
     load();
-  }, []);
+  }, [selectedOrgId]);
 
   const handleSave = async () => {
     if (!prompt.trim()) {
@@ -42,14 +51,36 @@ const ConfiguracaoClassificacaoCsv = () => {
     }
     setSaving(true);
     const now = new Date().toISOString();
-    await supabase
-      .from("configuracao_sistema")
-      .upsert({
-        id: "config-1",
-        prompt_classificacao_csv: prompt,
-        data_atualizacao: now,
-        usuario_atualizacao: "admin",
-      });
+
+    // Check if config exists for this org
+    let query = supabase.from("configuracao_sistema").select("id");
+    if (selectedOrgId) {
+      query = query.eq("orgao_id", selectedOrgId);
+    } else {
+      query = query.is("orgao_id", null);
+    }
+    const { data: existing } = await query.maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from("configuracao_sistema")
+        .update({
+          prompt_classificacao_csv: prompt,
+          data_atualizacao: now,
+          usuario_atualizacao: "admin",
+        })
+        .eq("id", existing.id);
+    } else {
+      await supabase
+        .from("configuracao_sistema")
+        .insert({
+          prompt_classificacao_csv: prompt,
+          orgao_id: selectedOrgId || null,
+          data_atualizacao: now,
+          usuario_atualizacao: "admin",
+        });
+    }
+
     setLastUpdate(now);
     setSaving(false);
     toast({ title: "Configuração salva", description: "O prompt de classificação foi atualizado com sucesso." });
@@ -58,14 +89,35 @@ const ConfiguracaoClassificacaoCsv = () => {
   const handleRestore = async () => {
     setPrompt(PROMPT_PADRAO);
     const now = new Date().toISOString();
-    await supabase
-      .from("configuracao_sistema")
-      .upsert({
-        id: "config-1",
-        prompt_classificacao_csv: PROMPT_PADRAO,
-        data_atualizacao: now,
-        usuario_atualizacao: "admin",
-      });
+
+    let query = supabase.from("configuracao_sistema").select("id");
+    if (selectedOrgId) {
+      query = query.eq("orgao_id", selectedOrgId);
+    } else {
+      query = query.is("orgao_id", null);
+    }
+    const { data: existing } = await query.maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from("configuracao_sistema")
+        .update({
+          prompt_classificacao_csv: PROMPT_PADRAO,
+          data_atualizacao: now,
+          usuario_atualizacao: "admin",
+        })
+        .eq("id", existing.id);
+    } else {
+      await supabase
+        .from("configuracao_sistema")
+        .insert({
+          prompt_classificacao_csv: PROMPT_PADRAO,
+          orgao_id: selectedOrgId || null,
+          data_atualizacao: now,
+          usuario_atualizacao: "admin",
+        });
+    }
+
     setLastUpdate(now);
     toast({ title: "Prompt restaurado", description: "O prompt padrão do sistema foi restaurado." });
   };
