@@ -3,6 +3,7 @@ import { Eye, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useOrgFilter } from "@/hooks/useOrgFilter";
 
 const statusLabels: Record<string, string> = {
   processando: "Processando",
@@ -22,14 +23,14 @@ const statusColors: Record<string, string> = {
 
 const ProcessTable = () => {
   const navigate = useNavigate();
+  const { selectedOrgId } = useOrgFilter();
 
   const { data: processos } = useQuery({
-    queryKey: ["processos"],
+    queryKey: ["processos", selectedOrgId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("processos")
-        .select("*")
-        .order("data_upload", { ascending: false });
+      let query = supabase.from("processos").select("*").order("data_upload", { ascending: false });
+      if (selectedOrgId) query = query.eq("orgao_id", selectedOrgId);
+      const { data } = await query;
       return data ?? [];
     },
   });

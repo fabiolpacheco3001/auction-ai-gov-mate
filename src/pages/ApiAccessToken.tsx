@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Key, Plus, Copy, Trash2, Loader2, Eye, EyeOff } from "lucide-react";
+import { useOrgFilter } from "@/hooks/useOrgFilter";
 
 interface ApiToken {
   id: string;
@@ -19,6 +20,7 @@ interface ApiToken {
 
 const ApiAccessToken = () => {
   const { user } = useAuth();
+  const { selectedOrgId } = useOrgFilter();
   const [tokens, setTokens] = useState<ApiToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -27,10 +29,9 @@ const ApiAccessToken = () => {
 
   const fetchTokens = async () => {
     if (!user) return;
-    const { data, error } = await supabase
-      .from("api_tokens")
-      .select("*")
-      .order("created_at", { ascending: false });
+    let query = supabase.from("api_tokens").select("*").order("created_at", { ascending: false });
+    if (selectedOrgId) query = query.eq("orgao_id", selectedOrgId);
+    const { data, error } = await query;
     if (error) {
       toast.error("Erro ao carregar tokens.");
       console.error(error);
@@ -42,7 +43,7 @@ const ApiAccessToken = () => {
 
   useEffect(() => {
     fetchTokens();
-  }, [user]);
+  }, [user, selectedOrgId]);
 
   const handleCreate = async () => {
     if (!user) return;

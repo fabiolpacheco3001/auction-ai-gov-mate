@@ -9,12 +9,17 @@ import StatCard from "@/components/dashboard/StatCard";
 import ProcessTable from "@/components/dashboard/ProcessTable";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useOrgFilter } from "@/hooks/useOrgFilter";
 
 const Dashboard = () => {
+  const { selectedOrgId } = useOrgFilter();
+
   const { data: stats } = useQuery({
-    queryKey: ["dashboard-stats"],
+    queryKey: ["dashboard-stats", selectedOrgId],
     queryFn: async () => {
-      const { data: processos } = await supabase.from("processos").select("*");
+      let query = supabase.from("processos").select("*");
+      if (selectedOrgId) query = query.eq("orgao_id", selectedOrgId);
+      const { data: processos } = await query;
       const rows = processos ?? [];
       const totalBens = rows.reduce((s, p) => s + (p.total_bens ?? 0), 0);
       const totalLotes = rows.reduce((s, p) => s + (p.total_lotes ?? 0), 0);

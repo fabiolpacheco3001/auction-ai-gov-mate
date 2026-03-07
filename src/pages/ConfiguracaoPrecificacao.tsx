@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Globe, Loader2, Save, Upload, Trash2, Settings } from "lucide-react";
+import { useOrgFilter } from "@/hooks/useOrgFilter";
 
 interface SiteRow {
   id: string | null;
@@ -23,15 +24,15 @@ const ConfiguracaoPrecificacao = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { selectedOrgId } = useOrgFilter();
 
   // ── Sites de precificação
   const { data: dbSites = [], isLoading } = useQuery({
-    queryKey: ["sites-precificacao"],
+    queryKey: ["sites-precificacao", selectedOrgId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("sites_precificacao")
-        .select("*")
-        .order("created_at", { ascending: true });
+      let query = supabase.from("sites_precificacao").select("*").order("created_at", { ascending: true });
+      if (selectedOrgId) query = query.eq("orgao_id", selectedOrgId);
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
