@@ -39,7 +39,7 @@ const Relatorios = () => {
     queryKey: ["relatorios-processos", selectedOrgId],
     queryFn: async () => {
       let q = supabase.from("processos").select("*");
-      q = applyOrgFilter(q);
+      if (selectedOrgId) q = q.eq("orgao_id", selectedOrgId);
       const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
