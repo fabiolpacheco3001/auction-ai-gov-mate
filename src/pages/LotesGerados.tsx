@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useOrgFilter } from "@/hooks/useOrgFilter";
 import { gerarDocumentoLotes, downloadPdf } from "@/services/DocumentoLoteService";
 import LoteItemsTable from "@/components/lotes/LoteItemsTable";
 import {
@@ -82,6 +83,7 @@ interface ProcessoGroup {
 
 const LotesGerados = () => {
   const queryClient = useQueryClient();
+  const { selectedOrgId } = useOrgFilter();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editingPrice, setEditingPrice] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -89,18 +91,27 @@ const LotesGerados = () => {
   const [selectedProcessos, setSelectedProcessos] = useState<Set<string>>(new Set());
 
   const { data: groups = [] } = useQuery<ProcessoGroup[]>({
-    queryKey: ["lotes-by-processo"],
+    queryKey: ["lotes-by-processo", selectedOrgId],
     queryFn: async () => {
-      const { data: lotesData } = await supabase.from("lotes").select("*").order("numero");
+      let lotesQuery = supabase.from("lotes").select("*").order("numero");
+      // Filter lotes by processo orgao_id - need to get processos first if filtering
+      let processoIds: string[] = [];
+      if (selectedOrgId) {
+        const { data: processosData } = await supabase.from("processos").select("id").eq("orgao_id", selectedOrgId);
+        processoIds = (processosData ?? []).map((p) => p.id);
+        if (processoIds.length === 0) return [];
+        lotesQuery = lotesQuery.in("processo_id", processoIds);
+      }
+      const { data: lotesData } = await lotesQuery;
       if (!lotesData || lotesData.length === 0) return [];
 
       // Get unique processo_ids
-      const processoIds = [...new Set(lotesData.map((l) => l.processo_id).filter(Boolean))] as string[];
+      const fetchedProcessoIds = [...new Set(lotesData.map((l) => l.processo_id).filter(Boolean))] as string[];
       
       // Fetch processos
       let processosMap: Record<string, Processo> = {};
-      if (processoIds.length > 0) {
-        const { data: processosData } = await supabase.from("processos").select("id, titulo, orgao, created_at").in("id", processoIds);
+      if (fetchedProcessoIds.length > 0) {
+        const { data: processosData } = await supabase.from("processos").select("id, titulo, orgao, created_at").in("id", fetchedProcessoIds);
         for (const p of processosData ?? []) {
           processosMap[p.id] = p;
         }
@@ -157,7 +168,7 @@ const LotesGerados = () => {
         }
       }
 
-      const sortedPids = processoIds
+      const sortedPids = fetchedProcessoIds
         .filter((pid) => grouped[pid] && processosMap[pid])
         .sort((a, b) => {
           const da = processosMap[a]?.created_at ?? "";
