@@ -115,9 +115,11 @@ Para cada item, você deve obter o valor médio de venda em cada site:
 - O campo "confianca" deve ser um número entre 0 e 1 indicando o grau de confiança da estimativa
 - Não considere itens cuja confiança seja inferior a 0.75
 - Para cada site, retorne a quantidade de itens/correspondências considerados na estimativa
-- Para cada site, retorne uma lista com a url e o valor de cada correspondência utilizada na obtenção do valor médio
+- Para cada site, retorne uma lista com a url, valor e observação de cada correspondência utilizada na obtenção do valor médio
+- O campo "observacao" deve descrever onde o item foi localizado no site, citando o leilão quando possível (ex: "Leilão Judicial nº 123/2024 - Vara de Execuções de SP")
+- As URLs das correspondências devem ser URLs reais e navegáveis do site de referência. Não invente URLs fictícias. Construa URLs válidas com base na estrutura real do site.
 - Nunca omitir nenhum site da lista
-- Nunca inventar URLs — usar exatamente as URLs fornecidas
+- Nunca inventar URLs — usar exatamente as URLs fornecidas como base
 
 ====================================================================
 FORMATO DE RESPOSTA OBRIGATÓRIO
@@ -155,7 +157,8 @@ Retorne APENAS um JSON válido no formato:
                 "correspondencias": [
                   {
                     "url": string,
-                    "valor": number
+                    "valor": number,
+                    "observacao": string
                   }
                 ]
               }
@@ -179,7 +182,8 @@ Retorne APENAS um JSON válido no formato:
 - "valorMedio" deve ser um número float ou null
 - "confianca" deve ser um número entre 0 e 1. Não considere itens com confiança inferior a 0.75
 - "itensConsiderados" deve ser o número de correspondências usadas para calcular o valorMedio
-- "correspondencias" deve ser uma lista com { "url": string, "valor": number } de cada item usado no cálculo
+- "correspondencias" deve ser uma lista com { "url": string, "valor": number, "observacao": string } de cada item usado no cálculo
+- "observacao" deve descrever onde o item foi encontrado no site, citando o leilão quando possível
 - "valorMedioGeral" deve ser a média dos valorMedio válidos (não nulos e com confiança >= 0.75)
 - "quantidadeSites" deve ser o total de sites considerados
 

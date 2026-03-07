@@ -7,7 +7,7 @@ export interface Precificacao {
     valorMedio: number | null;
     confianca: number;
     itensConsiderados: number;
-    correspondencias: { url: string; valor: number }[];
+    correspondencias: { url: string; valor: number; observacao: string }[];
   }[];
   quantidadeSites: number;
 }
