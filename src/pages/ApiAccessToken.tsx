@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Key, Plus, Copy, Trash2, Loader2, Eye, EyeOff } from "lucide-react";
 import { useOrgFilter } from "@/hooks/useOrgFilter";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface ApiToken {
   id: string;
