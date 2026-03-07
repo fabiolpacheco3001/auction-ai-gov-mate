@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Loader2, Plus, ShieldCheck } from "lucide-react";
+import { Building2, Loader2, Plus, ShieldCheck, Pencil } from "lucide-react";
 
 interface Orgao {
   id: string;
@@ -100,6 +100,7 @@ const ListaOrgaos = () => {
                     <TableHead>Início</TableHead>
                     <TableHead>Processos</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="w-[60px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -115,6 +116,11 @@ const ListaOrgaos = () => {
                         <Badge variant={org.ativo ? "default" : "secondary"}>
                           {org.ativo ? "Ativo" : "Inativo"}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/orgaos/${org.id}/editar`)} title="Editar órgão">
+                          <Pencil className="w-4 h-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

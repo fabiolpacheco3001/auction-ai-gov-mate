@@ -49,6 +49,7 @@ const ProtectedRoutes = () => {
         <Route path="/configuracoes/api-token" element={<ApiAccessToken />} />
         <Route path="/admin/orgaos" element={<ListaOrgaos />} />
         <Route path="/admin/orgaos/novo" element={<CadastroOrgaos />} />
+        <Route path="/admin/orgaos/:id/editar" element={<CadastroOrgaos />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
