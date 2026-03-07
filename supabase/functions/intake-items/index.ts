@@ -99,19 +99,27 @@ serve(async (req) => {
       );
     }
 
-    // Fetch prompt configuration (same as CSV flow)
-    const { data: configData } = await supabaseAdmin
+    // Fetch prompt configuration filtered by org
+    let configQuery = supabaseAdmin
       .from("configuracao_sistema")
-      .select("prompt_classificacao_csv")
-      .eq("id", "config-1")
-      .maybeSingle();
+      .select("prompt_classificacao_csv");
+    if (tokenRow.orgao_id) {
+      configQuery = configQuery.eq("orgao_id", tokenRow.orgao_id);
+    } else {
+      configQuery = configQuery.is("orgao_id", null);
+    }
+    const { data: configData } = await configQuery.maybeSingle();
 
     const promptConfigurado = configData?.prompt_classificacao_csv ?? "";
 
-    // Fetch pricing sites
-    const { data: sitesPrecificacao } = await supabaseAdmin
+    // Fetch pricing sites filtered by org
+    let sitesQuery = supabaseAdmin
       .from("sites_precificacao")
       .select("url, descricao");
+    if (tokenRow.orgao_id) {
+      sitesQuery = sitesQuery.eq("orgao_id", tokenRow.orgao_id);
+    }
+    const { data: sitesPrecificacao } = await sitesQuery;
 
     const sitesInfo = (sitesPrecificacao ?? [])
       .map((s: any) => `- ${s.url}${s.descricao ? ` (${s.descricao})` : ""}`)

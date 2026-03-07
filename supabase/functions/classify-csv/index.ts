@@ -13,19 +13,23 @@ serve(async (req) => {
   }
 
   try {
-    const { promptConfigurado, dadosCsv } = await req.json();
+    const { promptConfigurado, dadosCsv, orgaoId } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Fetch pricing sites from database
+    // Fetch pricing sites from database filtered by org
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: sitesPrecificacao } = await supabase.from("sites_precificacao").select("url, descricao");
+    let sitesQuery = supabase.from("sites_precificacao").select("url, descricao");
+    if (orgaoId) {
+      sitesQuery = sitesQuery.eq("orgao_id", orgaoId);
+    }
+    const { data: sitesPrecificacao } = await sitesQuery;
 
     const sitesInfo = (sitesPrecificacao ?? [])
       .map((s: any) => `- ${s.url}${s.descricao ? ` (${s.descricao})` : ""}`)
@@ -33,6 +37,7 @@ serve(async (req) => {
 
     console.log("Total de registros CSV:", dadosCsv?.length);
     console.log("Sites de precificação encontrados:", sitesPrecificacao?.length ?? 0);
+    console.log("Órgão ID:", orgaoId ?? "nenhum");
 
     const userMessage = `PROMPT DE CLASSIFICAÇÃO DEFINIDO PELO USUÁRIO:
 ${promptConfigurado}
@@ -177,7 +182,7 @@ REGRAS OBRIGATÓRIAS FINAIS
 * Não retorne texto fora do JSON
 `;
 
-    console.log("Prompt usadox:", userMessage);
+    console.log("Prompt usado:", userMessage);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
