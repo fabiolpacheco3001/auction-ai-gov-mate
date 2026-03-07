@@ -15,6 +15,7 @@ import ConfiguracaoClassificacaoCsv from "@/pages/ConfiguracaoClassificacaoCsv";
 import ConfiguracaoPrecificacao from "@/pages/ConfiguracaoPrecificacao";
 import ApiAccessToken from "@/pages/ApiAccessToken";
 import CadastroOrgaos from "@/pages/CadastroOrgaos";
+import ListaOrgaos from "@/pages/ListaOrgaos";
 import Login from "@/pages/Login";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -46,7 +47,8 @@ const ProtectedRoutes = () => {
         <Route path="/configuracoes/classificacao-csv" element={<ConfiguracaoClassificacaoCsv />} />
         <Route path="/configuracoes/precificacao" element={<ConfiguracaoPrecificacao />} />
         <Route path="/configuracoes/api-token" element={<ApiAccessToken />} />
-        <Route path="/admin/orgaos" element={<CadastroOrgaos />} />
+        <Route path="/admin/orgaos" element={<ListaOrgaos />} />
+        <Route path="/admin/orgaos/novo" element={<CadastroOrgaos />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
