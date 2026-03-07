@@ -32,6 +32,7 @@ const navItems = [
 
 const adminItems = [
   { to: "/admin/orgaos", label: "Cadastro de Órgãos", icon: Building2 },
+  { to: "/admin/selecao-orgao", label: "Seleção de Órgão", icon: Building2 },
 ];
 
 const AppSidebar = () => {
@@ -39,6 +40,7 @@ const AppSidebar = () => {
   const location = useLocation();
   const { signOut } = useAuth();
   const { isSuperAdmin } = useUserRole();
+  const { selectedOrgName } = useOrg();
 
   return (
     <aside
@@ -114,7 +116,7 @@ const AppSidebar = () => {
       {!collapsed && (
         <div className="px-4 py-3 mx-3 mb-3 rounded-lg bg-sidebar-accent/30 border border-sidebar-border">
           <p className="text-xs text-sidebar-foreground/60">Órgão</p>
-          <p className="text-sm font-medium text-sidebar-foreground truncate">Prefeitura de São Paulo</p>
+          <p className="text-sm font-medium text-sidebar-foreground truncate">{selectedOrgName}</p>
         </div>
       )}
 
