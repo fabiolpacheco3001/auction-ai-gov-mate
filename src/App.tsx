@@ -46,6 +46,7 @@ const ProtectedRoutes = () => {
         <Route path="/configuracoes/classificacao-csv" element={<ConfiguracaoClassificacaoCsv />} />
         <Route path="/configuracoes/precificacao" element={<ConfiguracaoPrecificacao />} />
         <Route path="/configuracoes/api-token" element={<ApiAccessToken />} />
+        <Route path="/admin/orgaos" element={<CadastroOrgaos />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
