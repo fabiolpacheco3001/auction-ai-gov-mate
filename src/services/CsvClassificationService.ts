@@ -16,7 +16,6 @@ export interface LoteItem {
   municipio: string;
   quantidade: number;
   valor: number;
-  valorMedioLeilao: number | null;
   precificacao?: Precificacao;
 }
 

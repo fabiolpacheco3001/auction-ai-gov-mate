@@ -209,30 +209,19 @@ Cada lote deve conter apenas os itens que pertencem ao mesmo grupo conforme defi
 INSTRUÇÕES DE PRECIFICAÇÃO
 ==========================
 
-Para cada item, você deve estimar o valor médio de venda em leilões públicos.
+Para cada item, você deve obter o valor médio de venda em cada site:
+- Analisar a descrição, categoria, estado, localização e demais dados disponíveis
+- Considerar cada URL da lista de sites_precificacao como uma fonte independente
+- Obter um valor médio de leilão separado para cada site
+- Calcular também o valor médio geral baseado nos valores estimados de todos os sites
+- Ignorar valores irreais ou fora do padrão de mercado
+- Usar aproximação inteligente baseada em similaridade com itens equivalentes
+- Se não houver confiança suficiente, retornar null
+- O campo "confianca" deve ser um número entre 0 e 1 indicando o grau de confiança da estimativa
+- Nunca omitir nenhum site da lista
+- Nunca inventar URLs — usar exatamente as URLs fornecidas
 
-Use:
-
-* descrição
-* categoria
-* estado
-* localização
-* e demais dados disponíveis
-
-Considere os sites de precificação fornecidos como referência de mercado.
-
-Regras:
-
-* estimar valor realista de mercado
-* ignorar valores irreais
-* usar similaridade com itens equivalentes
-* usar aproximação inteligente quando necessário
-
-Retorne:
-
-"valorMedioLeilao": number | null
-
-Retorne null se não houver confiança suficiente.
+Retorne null se não houver confiança suficiente (inferior a 0.7).
 
 ====================================================================
 FORMATO DE RESPOSTA OBRIGATÓRIO
@@ -259,7 +248,17 @@ Retorne APENAS um JSON válido no formato:
 "municipio": string,
 "quantidade": number,
 "valor": number,
-"valorMedioLeilao": number | null
+"precificacao": {
+            "valorMedioGeral": number | null,
+            "valorMedioPorSite": [
+              {
+                "url": string,
+                "valorMedio": number | null,
+                "confianca": number
+              }
+            ],
+            "quantidadeSites": number
+          }
 }
 ]
 }
@@ -271,6 +270,13 @@ Retorne APENAS um JSON válido no formato:
 "totalErros": number,
 "totalLotes": number
 }
+
+- O campo "precificacao.valorMedioPorSite" deve conter um objeto para CADA URL fornecida em sites_precificacao
+- O campo "url" dentro de valorMedioPorSite deve ser EXATAMENTE igual ao fornecido na lista
+- "valorMedio" deve ser um número float ou null
+- "confianca" deve ser um número entre 0 e 1
+- "valorMedioGeral" deve ser a média dos valorMedio válidos (não nulos)
+- "quantidadeSites" deve ser o total de sites considerados
 
 ====================================================================
 REGRAS OBRIGATÓRIAS FINAIS
@@ -301,7 +307,7 @@ REGRAS OBRIGATÓRIAS FINAIS
           {
             role: "system",
             content:
-              "Você é um especialista em classificação e agrupamento de bens patrimoniais, avaliação de leilões públicos, classificação patrimonial e precificação de bens usados.\n\nSua tarefa é:\n1. Classificar os itens conforme o prompt do usuário\n2. Agrupar os itens por categoria + municipio + localizacao (cada combinação única = um lote)\n3. Para cada item, estimar o valor médio de leilão consultando os sites de precificação fornecidos\n4. Usar aproximação inteligente baseada em similaridade quando não houver correspondência exata\n5. Retornar os dados estruturados em formato de lotes com o campo valorMedioLeilao\n\nResponda APENAS com JSON válido.",
+              "Você é um especialista em classificação e agrupamento de bens patrimoniais, avaliação de leilões públicos, classificação patrimonial e precificação de bens usados.\n\nSua tarefa é:\n1. Classificar os itens conforme o prompt do usuário\n2. Agrupar os itens em lotes conforme as regras do prompt do usuário\n3. Para cada item, estimar o valor médio em cada site de precificação fornecido, retornando o objeto 'precificacao' com valorMedioPorSite e valorMedioGeral\n4. Usar aproximação inteligente baseada em similaridade quando não houver correspondência exata\n5. Retornar os dados estruturados em formato de lotes\n\nResponda APENAS com JSON válido.",
           },
           { role: "user", content: userMessage },
         ],
@@ -365,8 +371,7 @@ REGRAS OBRIGATÓRIAS FINAIS
 
     // Insert bens with AI pricing (same logic as CSV flow in RevisaoLotes)
     const bensToInsert = itensValidados.map((item: any, idx: number) => {
-      // Find this item in AI results to get valorMedioLeilao and precificacao
-      let valorMedioLeilao: number | null = null;
+      // Find this item in AI results to get precificacao per-site values
       let site1: number | null = null;
       let site2: number | null = null;
       let site3: number | null = null;
@@ -374,19 +379,19 @@ REGRAS OBRIGATÓRIAS FINAIS
       for (const lote of lotes) {
         const aiItem = lote.itens?.find((i: any) => i.linha === idx + 1);
         if (aiItem) {
-          valorMedioLeilao = aiItem.valorMedioLeilao ?? null;
           // Update categoria from AI classification
           item.categoria = aiItem.categoria ?? item.categoria;
 
-          // Extract per-site values from precificacao (same as CSV flow)
+          // Extract per-site values from precificacao
           const sites = aiItem.precificacao?.valorMedioPorSite ?? [];
           site1 = sites[0]?.valorMedio ?? null;
           site2 = sites[1]?.valorMedio ?? null;
           site3 = sites[2]?.valorMedio ?? null;
 
-          // If no per-site data but valorMedioLeilao exists, use it as site1
-          if (site1 === null && site2 === null && site3 === null && valorMedioLeilao != null) {
-            site1 = valorMedioLeilao;
+          // If no per-site data but valorMedioGeral exists, use it as site1
+          const valorMedioGeral = aiItem.precificacao?.valorMedioGeral ?? null;
+          if (site1 === null && site2 === null && site3 === null && valorMedioGeral != null) {
+            site1 = valorMedioGeral;
           }
           break;
         }
@@ -440,7 +445,7 @@ REGRAS OBRIGATÓRIAS FINAIS
           const vs = bem.valor_sugerido ?? bem.valor_estimado ?? 0;
           return s + (bem.quantidade ?? 1) * vs;
         }
-        const vm = aiItem.valorMedioLeilao ?? aiItem.valor ?? 0;
+        const vm = aiItem.precificacao?.valorMedioGeral ?? aiItem.valor ?? 0;
         return s + vm * (aiItem.quantidade ?? 1);
       }, 0);
 
