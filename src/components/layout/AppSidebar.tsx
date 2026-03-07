@@ -37,6 +37,7 @@ const AppSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const { signOut } = useAuth();
+  const { isSuperAdmin } = useUserRole();
 
   return (
     <aside
