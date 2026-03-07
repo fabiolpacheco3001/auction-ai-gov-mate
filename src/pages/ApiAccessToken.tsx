@@ -29,7 +29,7 @@ const ApiAccessToken = () => {
 
   const fetchTokens = async () => {
     if (!user) return;
-    let query = supabase.from("api_tokens").select("*").order("created_at", { ascending: false });
+    let query = supabase.from("api_tokens").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     if (selectedOrgId) query = query.eq("orgao_id", selectedOrgId);
     const { data, error } = await query;
     if (error) {
@@ -48,10 +48,12 @@ const ApiAccessToken = () => {
   const handleCreate = async () => {
     if (!user) return;
     setCreating(true);
-    const { error } = await supabase.from("api_tokens").insert({
+    const insertData: any = {
       user_id: user.id,
       nome: novoNome.trim() || "Token padrão",
-    });
+    };
+    if (selectedOrgId) insertData.orgao_id = selectedOrgId;
+    const { error } = await supabase.from("api_tokens").insert(insertData);
     if (error) {
       toast.error("Erro ao criar token.");
       console.error(error);
