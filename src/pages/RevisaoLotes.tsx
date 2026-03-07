@@ -74,6 +74,7 @@ const RevisaoLotes = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { selectedOrgId } = useOrgFilter();
 
   const classificationResult: ClassificationResult | undefined = location.state?.classificationResult;
   const fileName = location.state?.fileName ?? "arquivo.csv";
