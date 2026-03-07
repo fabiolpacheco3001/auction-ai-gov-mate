@@ -149,6 +149,7 @@ const ConfiguracaoPrecificacao = () => {
       }).eq("id", configData.id);
     } else {
       await supabase.from("configuracao_sistema").insert({
+        id: crypto.randomUUID(),
         prompt_classificacao_csv: prompt,
         orgao_id: selectedOrgId || null,
         data_atualizacao: now,
@@ -172,6 +173,7 @@ const ConfiguracaoPrecificacao = () => {
       }).eq("id", configData.id);
     } else {
       await supabase.from("configuracao_sistema").insert({
+        id: crypto.randomUUID(),
         prompt_classificacao_csv: PROMPT_PADRAO,
         orgao_id: selectedOrgId || null,
         data_atualizacao: now,
