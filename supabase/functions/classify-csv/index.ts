@@ -133,11 +133,7 @@ Regras:
 * usar similaridade com itens equivalentes
 * usar aproximação inteligente quando necessário
 
-Retorne:
-
-"valorMedioLeilao": number | null
-
-Retorne null se a confiança for inferior a 70 porcento.
+Retorne null se não houver confiança suficiente (inferior a 0.7).
 
 ====================================================================
 FORMATO DE RESPOSTA OBRIGATÓRIO
@@ -223,7 +219,7 @@ REGRAS OBRIGATÓRIAS FINAIS
           {
             role: "system",
             content:
-              "Você é um especialista em classificação e agrupamento de bens patrimoniais, avaliação de leilões públicos, classificação patrimonial e precificação de bens usados.\n\nSua tarefa é:\n1. Classificar os itens conforme o prompt do usuário\n2. Agrupar os itens por categoria + municipio + localizacao (cada combinação única = um lote)\n3. Para cada item, estimar o valor médio de leilão consultando os sites de precificação fornecidos\n4. Usar aproximação inteligente baseada em similaridade quando não houver correspondência exata\n5. Retornar os dados estruturados em formato de lotes com o campo valorMedioLeilao\n\nResponda APENAS com JSON válido.",
+              "Você é um especialista em classificação e agrupamento de bens patrimoniais, avaliação de leilões públicos, classificação patrimonial e precificação de bens usados.\n\nSua tarefa é:\n1. Classificar os itens conforme o prompt do usuário\n2. Agrupar os itens em lotes conforme as regras do prompt do usuário\n3. Para cada item, estimar o valor médio em cada site de precificação fornecido, retornando o objeto 'precificacao' com valorMedioPorSite e valorMedioGeral\n4. Usar aproximação inteligente baseada em similaridade quando não houver correspondência exata\n5. Retornar os dados estruturados em formato de lotes\n\nResponda APENAS com JSON válido.",
           },
           { role: "user", content: userMessage },
         ],
