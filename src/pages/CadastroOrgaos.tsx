@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,9 +12,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Plus, Building2, Loader2, Trash2, ShieldCheck, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { CalendarIcon, Plus, Building2, Loader2, Trash2, ShieldCheck, Eye, EyeOff, ArrowLeft, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface UF {
@@ -51,6 +51,8 @@ const CadastroOrgaos = () => {
   const { isSuperAdmin, loading: roleLoading } = useUserRole();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const isEditing = !!id;
 
   const [nome, setNome] = useState("");
   const [sigla, setSigla] = useState("");
@@ -59,16 +61,20 @@ const CadastroOrgaos = () => {
   const [dataInicio, setDataInicio] = useState<Date>();
   const [dataTermino, setDataTermino] = useState<Date>();
   const [pacoteProcessos, setPacoteProcessos] = useState("");
+  const [ativo, setAtivo] = useState(true);
 
   const [ufs, setUfs] = useState<UF[]>([]);
   const [cidades, setCidades] = useState<Cidade[]>([]);
   const [loadingUfs, setLoadingUfs] = useState(false);
   const [loadingCidades, setLoadingCidades] = useState(false);
+  const [loadingOrgao, setLoadingOrgao] = useState(false);
+  const [initialCidadeValue, setInitialCidadeValue] = useState("");
 
   const [usuarios, setUsuarios] = useState<UserForm[]>([emptyUser()]);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Fetch UFs
   useEffect(() => {
     const fetchUfs = async () => {
       setLoadingUfs(true);
@@ -84,15 +90,48 @@ const CadastroOrgaos = () => {
     fetchUfs();
   }, []);
 
+  // Load orgao data when editing
+  useEffect(() => {
+    if (!id || !isSuperAdmin || roleLoading) return;
+    const loadOrgao = async () => {
+      setLoadingOrgao(true);
+      const { data, error } = await supabase.from("orgaos").select("*").eq("id", id).single();
+      if (error || !data) {
+        toast({ title: "Órgão não encontrado", variant: "destructive" });
+        navigate("/admin/orgaos");
+        return;
+      }
+      const orgao = data as any;
+      setNome(orgao.nome);
+      setSigla(orgao.sigla);
+      setUf(orgao.uf);
+      setInitialCidadeValue(orgao.cidade);
+      setDataInicio(parseISO(orgao.data_inicio));
+      setDataTermino(orgao.data_termino ? parseISO(orgao.data_termino) : undefined);
+      setPacoteProcessos(orgao.pacote_processos?.toString() ?? "");
+      setAtivo(orgao.ativo);
+      setUsuarios([]); // No user creation when editing
+      setLoadingOrgao(false);
+    };
+    loadOrgao();
+  }, [id, isSuperAdmin, roleLoading]);
+
+  // Fetch cidades when UF changes
   useEffect(() => {
     if (!uf) { setCidades([]); setCidade(""); return; }
     const fetchCidades = async () => {
       setLoadingCidades(true);
-      setCidade("");
       try {
         const res = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`);
         const data = await res.json();
         setCidades(data);
+        // Restore cidade after cities load (for edit mode)
+        if (initialCidadeValue) {
+          setCidade(initialCidadeValue);
+          setInitialCidadeValue("");
+        } else if (!isEditing) {
+          setCidade("");
+        }
       } catch {
         toast({ title: "Erro ao carregar cidades", variant: "destructive" });
       }
@@ -122,16 +161,18 @@ const CadastroOrgaos = () => {
     if (!cidade) newErrors.cidade = "Cidade é obrigatória";
     if (!dataInicio) newErrors.dataInicio = "Data de início é obrigatória";
 
-    const hasAdmin = usuarios.some(u => u.isAdmin);
-    if (!hasAdmin) newErrors.usuarios = "É necessário ao menos 1 usuário administrador do órgão";
+    if (!isEditing) {
+      const hasAdmin = usuarios.some(u => u.isAdmin);
+      if (!hasAdmin) newErrors.usuarios = "É necessário ao menos 1 usuário administrador do órgão";
 
-    usuarios.forEach((u, i) => {
-      if (!u.nome.trim()) newErrors[`user_${i}_nome`] = "Nome é obrigatório";
-      if (!u.email.trim()) newErrors[`user_${i}_email`] = "E-mail é obrigatório";
-      if (!u.login.trim()) newErrors[`user_${i}_login`] = "Login é obrigatório";
-      if (!u.senha.trim()) newErrors[`user_${i}_senha`] = "Senha é obrigatória";
-      if (u.senha.length > 0 && u.senha.length < 6) newErrors[`user_${i}_senha`] = "Senha deve ter no mínimo 6 caracteres";
-    });
+      usuarios.forEach((u, i) => {
+        if (!u.nome.trim()) newErrors[`user_${i}_nome`] = "Nome é obrigatório";
+        if (!u.email.trim()) newErrors[`user_${i}_email`] = "E-mail é obrigatório";
+        if (!u.login.trim()) newErrors[`user_${i}_login`] = "Login é obrigatório";
+        if (!u.senha.trim()) newErrors[`user_${i}_senha`] = "Senha é obrigatória";
+        if (u.senha.length > 0 && u.senha.length < 6) newErrors[`user_${i}_senha`] = "Senha deve ter no mínimo 6 caracteres";
+      });
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -143,48 +184,58 @@ const CadastroOrgaos = () => {
 
     setSubmitting(true);
     try {
-      const { data: orgao, error: orgaoError } = await supabase
-        .from("orgaos")
-        .insert({
-          nome: nome.trim(),
-          sigla: sigla.trim().toUpperCase(),
-          uf,
-          cidade,
-          data_inicio: format(dataInicio!, "yyyy-MM-dd"),
-          data_termino: dataTermino ? format(dataTermino, "yyyy-MM-dd") : null,
-          pacote_processos: pacoteProcessos ? parseInt(pacoteProcessos) : null,
-        })
-        .select()
-        .single();
+      const orgaoData = {
+        nome: nome.trim(),
+        sigla: sigla.trim().toUpperCase(),
+        uf,
+        cidade,
+        data_inicio: format(dataInicio!, "yyyy-MM-dd"),
+        data_termino: dataTermino ? format(dataTermino, "yyyy-MM-dd") : null,
+        pacote_processos: pacoteProcessos ? parseInt(pacoteProcessos) : null,
+        ativo,
+      };
 
-      if (orgaoError) throw orgaoError;
+      if (isEditing) {
+        const { error } = await supabase.from("orgaos").update(orgaoData).eq("id", id);
+        if (error) throw error;
+        toast({ title: "Órgão atualizado com sucesso!" });
+      } else {
+        const { data: orgao, error: orgaoError } = await supabase
+          .from("orgaos")
+          .insert(orgaoData)
+          .select()
+          .single();
 
-      for (const u of usuarios) {
-        const res = await supabase.functions.invoke("create-org-user", {
-          body: {
-            email: u.email.trim(),
-            password: u.senha,
-            nome: u.nome.trim(),
-            login: u.login.trim(),
-            is_admin: u.isAdmin,
-            orgao_id: (orgao as any).id,
-          },
-        });
+        if (orgaoError) throw orgaoError;
 
-        if (res.error || res.data?.error) {
-          throw new Error(res.data?.error || res.error?.message || "Erro ao criar usuário");
+        for (const u of usuarios) {
+          const res = await supabase.functions.invoke("create-org-user", {
+            body: {
+              email: u.email.trim(),
+              password: u.senha,
+              nome: u.nome.trim(),
+              login: u.login.trim(),
+              is_admin: u.isAdmin,
+              orgao_id: (orgao as any).id,
+            },
+          });
+
+          if (res.error || res.data?.error) {
+            throw new Error(res.data?.error || res.error?.message || "Erro ao criar usuário");
+          }
         }
+
+        toast({ title: "Órgão criado com sucesso!", description: `${nome} foi cadastrado com ${usuarios.length} usuário(s).` });
       }
 
-      toast({ title: "Órgão criado com sucesso!", description: `${nome} foi cadastrado com ${usuarios.length} usuário(s).` });
       navigate("/admin/orgaos");
     } catch (err: any) {
-      toast({ title: "Erro ao criar órgão", description: err.message, variant: "destructive" });
+      toast({ title: isEditing ? "Erro ao atualizar órgão" : "Erro ao criar órgão", description: err.message, variant: "destructive" });
     }
     setSubmitting(false);
   };
 
-  if (roleLoading) {
+  if (roleLoading || loadingOrgao) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-accent" />
@@ -208,8 +259,12 @@ const CadastroOrgaos = () => {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Novo Órgão</h1>
-          <p className="text-muted-foreground mt-1">Preencha os dados do órgão e seus usuários</p>
+          <h1 className="text-2xl font-display font-bold text-foreground">
+            {isEditing ? "Editar Órgão" : "Novo Órgão"}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {isEditing ? "Altere os dados do órgão" : "Preencha os dados do órgão e seus usuários"}
+          </p>
         </div>
       </div>
 
@@ -220,7 +275,7 @@ const CadastroOrgaos = () => {
               <Building2 className="w-5 h-5 text-accent" />
               Dados do Órgão
             </CardTitle>
-            <CardDescription>Preencha as informações do novo órgão</CardDescription>
+            <CardDescription>{isEditing ? "Edite as informações do órgão" : "Preencha as informações do novo órgão"}</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2 lg:col-span-2">
@@ -286,86 +341,97 @@ const CadastroOrgaos = () => {
               <Label htmlFor="org-pacote">Pacote de Processos</Label>
               <Input id="org-pacote" type="number" min={0} value={pacoteProcessos} onChange={e => setPacoteProcessos(e.target.value)} placeholder="Opcional" />
             </div>
+            {isEditing && (
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <div className="flex items-center gap-3 pt-2">
+                  <Switch checked={ativo} onCheckedChange={setAtivo} />
+                  <span className="text-sm text-muted-foreground">{ativo ? "Ativo" : "Inativo"}</span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-accent" />
-                  Usuários do Órgão
-                </CardTitle>
-                <CardDescription>Cadastre ao menos 1 administrador do órgão</CardDescription>
+        {!isEditing && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-accent" />
+                    Usuários do Órgão
+                  </CardTitle>
+                  <CardDescription>Cadastre ao menos 1 administrador do órgão</CardDescription>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={addUser}>
+                  <Plus className="w-4 h-4 mr-1" /> Adicionar Usuário
+                </Button>
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={addUser}>
-                <Plus className="w-4 h-4 mr-1" /> Adicionar Usuário
-              </Button>
-            </div>
-            {errors.usuarios && <p className="text-sm text-destructive mt-2">{errors.usuarios}</p>}
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {usuarios.map((u, i) => (
-              <div key={i} className="p-4 border border-border rounded-xl space-y-4 bg-muted/30">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">Usuário {i + 1}</span>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor={`admin-${i}`} className="text-xs text-muted-foreground">Admin do Órgão</Label>
-                      <Switch id={`admin-${i}`} checked={u.isAdmin} onCheckedChange={v => updateUser(i, "isAdmin", v)} />
+              {errors.usuarios && <p className="text-sm text-destructive mt-2">{errors.usuarios}</p>}
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {usuarios.map((u, i) => (
+                <div key={i} className="p-4 border border-border rounded-xl space-y-4 bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">Usuário {i + 1}</span>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor={`admin-${i}`} className="text-xs text-muted-foreground">Admin do Órgão</Label>
+                        <Switch id={`admin-${i}`} checked={u.isAdmin} onCheckedChange={v => updateUser(i, "isAdmin", v)} />
+                      </div>
+                      {usuarios.length > 1 && (
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeUser(i)} className="text-destructive hover:text-destructive">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
-                    {usuarios.length > 1 && (
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeUser(i)} className="text-destructive hover:text-destructive">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Nome *</Label>
+                      <Input value={u.nome} onChange={e => updateUser(i, "nome", e.target.value)} placeholder="Nome completo" />
+                      {errors[`user_${i}_nome`] && <p className="text-xs text-destructive">{errors[`user_${i}_nome`]}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>E-mail *</Label>
+                      <Input type="email" value={u.email} onChange={e => updateUser(i, "email", e.target.value)} placeholder="email@orgao.gov.br" />
+                      {errors[`user_${i}_email`] && <p className="text-xs text-destructive">{errors[`user_${i}_email`]}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Login *</Label>
+                      <Input value={u.login} onChange={e => updateUser(i, "login", e.target.value)} placeholder="login.usuario" />
+                      {errors[`user_${i}_login`] && <p className="text-xs text-destructive">{errors[`user_${i}_login`]}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Senha *</Label>
+                      <div className="relative">
+                        <Input
+                          type={u.showPassword ? "text" : "password"}
+                          value={u.senha}
+                          onChange={e => updateUser(i, "senha", e.target.value)}
+                          placeholder="Mínimo 6 caracteres"
+                        />
+                        <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={() => updateUser(i, "showPassword", !u.showPassword)}>
+                          {u.showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                      {errors[`user_${i}_senha`] && <p className="text-xs text-destructive">{errors[`user_${i}_senha`]}</p>}
+                    </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Nome *</Label>
-                    <Input value={u.nome} onChange={e => updateUser(i, "nome", e.target.value)} placeholder="Nome completo" />
-                    {errors[`user_${i}_nome`] && <p className="text-xs text-destructive">{errors[`user_${i}_nome`]}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <Label>E-mail *</Label>
-                    <Input type="email" value={u.email} onChange={e => updateUser(i, "email", e.target.value)} placeholder="email@orgao.gov.br" />
-                    {errors[`user_${i}_email`] && <p className="text-xs text-destructive">{errors[`user_${i}_email`]}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Login *</Label>
-                    <Input value={u.login} onChange={e => updateUser(i, "login", e.target.value)} placeholder="login.usuario" />
-                    {errors[`user_${i}_login`] && <p className="text-xs text-destructive">{errors[`user_${i}_login`]}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Senha *</Label>
-                    <div className="relative">
-                      <Input
-                        type={u.showPassword ? "text" : "password"}
-                        value={u.senha}
-                        onChange={e => updateUser(i, "senha", e.target.value)}
-                        placeholder="Mínimo 6 caracteres"
-                      />
-                      <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={() => updateUser(i, "showPassword", !u.showPassword)}>
-                        {u.showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </Button>
-                    </div>
-                    {errors[`user_${i}_senha`] && <p className="text-xs text-destructive">{errors[`user_${i}_senha`]}</p>}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         <div className="flex justify-between">
           <Button type="button" variant="outline" onClick={() => navigate("/admin/orgaos")}>
             Cancelar
           </Button>
           <Button type="submit" disabled={submitting} className="bg-accent text-accent-foreground hover:bg-accent/90 px-8">
-            {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Building2 className="w-4 h-4 mr-2" />}
-            Cadastrar Órgão
+            {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : isEditing ? <Save className="w-4 h-4 mr-2" /> : <Building2 className="w-4 h-4 mr-2" />}
+            {isEditing ? "Salvar Alterações" : "Cadastrar Órgão"}
           </Button>
         </div>
       </form>
