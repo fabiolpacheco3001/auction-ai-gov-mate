@@ -17,6 +17,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useOrg } from "@/contexts/OrgContext";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },

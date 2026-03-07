@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { OrgProvider } from "@/contexts/OrgContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import AppLayout from "@/components/layout/AppLayout";
 import Dashboard from "@/pages/Dashboard";
 import NovoProcesso from "@/pages/NovoProcesso";
@@ -16,11 +18,36 @@ import ConfiguracaoPrecificacao from "@/pages/ConfiguracaoPrecificacao";
 import ApiAccessToken from "@/pages/ApiAccessToken";
 import CadastroOrgaos from "@/pages/CadastroOrgaos";
 import ListaOrgaos from "@/pages/ListaOrgaos";
+import SelecaoOrgao from "@/pages/SelecaoOrgao";
 import Login from "@/pages/Login";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useEffect } from "react";
 
 const queryClient = new QueryClient();
+
+const SuperAdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isSuperAdmin, loading } = useUserRole();
+
+  useEffect(() => {
+    if (!loading && !isSuperAdmin) {
+      toast.error("Acesso negado. Apenas Super Admins podem acessar esta página.");
+    }
+  }, [loading, isSuperAdmin]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 text-accent animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isSuperAdmin) return <Navigate to="/" replace />;
+
+  return <>{children}</>;
+};
 
 const ProtectedRoutes = () => {
   const { user, loading } = useAuth();
@@ -36,23 +63,26 @@ const ProtectedRoutes = () => {
   if (!user) return <Navigate to="/login" replace />;
 
   return (
-    <Routes>
-      <Route element={<AppLayout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/novo-processo" element={<NovoProcesso />} />
-        <Route path="/lotes" element={<LotesGerados />} />
-        <Route path="/revisao-lotes" element={<RevisaoLotes />} />
-        <Route path="/documentos" element={<Documentos />} />
-        <Route path="/relatorios" element={<Relatorios />} />
-        <Route path="/configuracoes/classificacao-csv" element={<ConfiguracaoClassificacaoCsv />} />
-        <Route path="/configuracoes/precificacao" element={<ConfiguracaoPrecificacao />} />
-        <Route path="/configuracoes/api-token" element={<ApiAccessToken />} />
-        <Route path="/admin/orgaos" element={<ListaOrgaos />} />
-        <Route path="/admin/orgaos/novo" element={<CadastroOrgaos />} />
-        <Route path="/admin/orgaos/:id/editar" element={<CadastroOrgaos />} />
-      </Route>
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <OrgProvider>
+      <Routes>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/novo-processo" element={<NovoProcesso />} />
+          <Route path="/lotes" element={<LotesGerados />} />
+          <Route path="/revisao-lotes" element={<RevisaoLotes />} />
+          <Route path="/documentos" element={<Documentos />} />
+          <Route path="/relatorios" element={<Relatorios />} />
+          <Route path="/configuracoes/classificacao-csv" element={<ConfiguracaoClassificacaoCsv />} />
+          <Route path="/configuracoes/precificacao" element={<ConfiguracaoPrecificacao />} />
+          <Route path="/configuracoes/api-token" element={<ApiAccessToken />} />
+          <Route path="/admin/orgaos" element={<SuperAdminRoute><ListaOrgaos /></SuperAdminRoute>} />
+          <Route path="/admin/orgaos/novo" element={<SuperAdminRoute><CadastroOrgaos /></SuperAdminRoute>} />
+          <Route path="/admin/orgaos/:id/editar" element={<SuperAdminRoute><CadastroOrgaos /></SuperAdminRoute>} />
+          <Route path="/admin/selecao-orgao" element={<SuperAdminRoute><SelecaoOrgao /></SuperAdminRoute>} />
+        </Route>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </OrgProvider>
   );
 };
 
