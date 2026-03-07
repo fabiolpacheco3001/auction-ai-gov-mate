@@ -2,7 +2,13 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface Precificacao {
   valorMedioGeral: number | null;
-  valorMedioPorSite: { url: string; valorMedio: number | null; confianca: number }[];
+  valorMedioPorSite: {
+    url: string;
+    valorMedio: number | null;
+    confianca: number;
+    itensConsiderados: number;
+    correspondencias: { url: string; valor: number }[];
+  }[];
   quantidadeSites: number;
 }
 
