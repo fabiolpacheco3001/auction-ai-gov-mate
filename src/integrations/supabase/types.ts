@@ -284,6 +284,7 @@ export type Database = {
         Row: {
           ativo: boolean
           created_at: string
+          email: string | null
           id: string
           is_admin: boolean
           login: string
@@ -294,6 +295,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           created_at?: string
+          email?: string | null
           id?: string
           is_admin?: boolean
           login: string
@@ -304,6 +306,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           created_at?: string
+          email?: string | null
           id?: string
           is_admin?: boolean
           login?: string

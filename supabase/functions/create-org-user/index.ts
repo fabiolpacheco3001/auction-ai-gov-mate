@@ -62,9 +62,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create auth user
+    // Use synthetic email for auth to avoid uniqueness constraint on real emails
+    const authEmail = `${login}@alienagov.gov.br`;
+
+    // Create auth user with synthetic email
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-      email,
+      email: authEmail,
       password,
       email_confirm: true,
     });
@@ -76,7 +79,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Insert into orgao_usuarios
+    // Insert into orgao_usuarios with real email
     const { error: insertError } = await adminClient
       .from("orgao_usuarios")
       .insert({
@@ -84,6 +87,7 @@ Deno.serve(async (req) => {
         user_id: newUser.user.id,
         nome,
         login,
+        email,
         is_admin: is_admin ?? false,
       });
 
