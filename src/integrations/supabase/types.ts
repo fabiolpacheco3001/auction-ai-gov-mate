@@ -248,6 +248,89 @@ export type Database = {
           },
         ]
       }
+      orgao_usuarios: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          is_admin: boolean
+          login: string
+          nome: string
+          orgao_id: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          login: string
+          nome: string
+          orgao_id: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          login?: string
+          nome?: string
+          orgao_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orgao_usuarios_orgao_id_fkey"
+            columns: ["orgao_id"]
+            isOneToOne: false
+            referencedRelation: "orgaos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orgaos: {
+        Row: {
+          ativo: boolean
+          cidade: string
+          created_at: string
+          data_inicio: string
+          data_termino: string | null
+          id: string
+          nome: string
+          pacote_processos: number | null
+          sigla: string
+          uf: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cidade: string
+          created_at?: string
+          data_inicio: string
+          data_termino?: string | null
+          id?: string
+          nome: string
+          pacote_processos?: number | null
+          sigla: string
+          uf: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cidade?: string
+          created_at?: string
+          data_inicio?: string
+          data_termino?: string | null
+          id?: string
+          nome?: string
+          pacote_processos?: number | null
+          sigla?: string
+          uf?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       processos: {
         Row: {
           arrecadacao_estimada: number
@@ -317,15 +400,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "org_admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -452,6 +559,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "org_admin", "user"],
+    },
   },
 } as const
