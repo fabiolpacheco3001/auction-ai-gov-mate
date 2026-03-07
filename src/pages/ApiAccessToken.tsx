@@ -17,6 +17,8 @@ interface ApiToken {
   ativo: boolean;
   created_at: string;
   last_used_at: string | null;
+  orgao_id: string | null;
+  orgaos?: { sigla: string } | null;
 }
 
 const ApiAccessToken = () => {
@@ -32,7 +34,7 @@ const ApiAccessToken = () => {
   const fetchTokens = async () => {
     if (!user || roleLoading) return;
     setLoading(true);
-    let query = supabase.from("api_tokens").select("*").order("created_at", { ascending: false });
+    let query = supabase.from("api_tokens").select("*, orgaos:orgao_id(sigla)").order("created_at", { ascending: false });
     if (!isSuperAdmin) query = query.eq("user_id", user.id);
     if (selectedOrgId) query = query.eq("orgao_id", selectedOrgId);
     const { data, error } = await query;
@@ -127,11 +129,14 @@ const ApiAccessToken = () => {
               className="max-w-sm"
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
             />
-            <Button onClick={handleCreate} disabled={creating}>
+            <Button onClick={handleCreate} disabled={creating || (isSuperAdmin && !selectedOrgId)}>
               {creating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
               Gerar Token
             </Button>
           </div>
+          {isSuperAdmin && !selectedOrgId && (
+            <p className="text-xs text-warning mt-2">Selecione um órgão específico para gerar um token.</p>
+          )}
         </CardContent>
       </Card>
 
@@ -156,6 +161,9 @@ const ApiAccessToken = () => {
                   <div className="flex-1 min-w-0 space-y-2">
                     <div className="flex items-center gap-2">
                       <Key className="w-4 h-4 text-muted-foreground shrink-0" />
+                      {(t as any).orgaos?.sigla && (
+                        <Badge variant="outline" className="text-xs font-mono">{(t as any).orgaos.sigla}</Badge>
+                      )}
                       <span className="font-medium text-foreground text-sm">{t.nome}</span>
                       <Badge variant={t.ativo ? "default" : "secondary"} className="text-xs">
                         {t.ativo ? "Ativo" : "Inativo"}
