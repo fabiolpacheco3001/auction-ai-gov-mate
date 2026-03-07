@@ -35,6 +35,7 @@ interface ExistingUser {
   id: string;
   nome: string;
   login: string;
+  email: string | null;
   is_admin: boolean;
   ativo: boolean;
 }
@@ -108,7 +109,7 @@ const CadastroOrgaos = () => {
       // Load existing users
       const { data: users } = await supabase
         .from("orgao_usuarios")
-        .select("id, nome, login, is_admin, ativo")
+        .select("id, nome, login, email, is_admin, ativo")
         .eq("orgao_id", id)
         .order("created_at", { ascending: true });
       setExistingUsers((users as any) ?? []);
@@ -164,7 +165,7 @@ const CadastroOrgaos = () => {
     toast({ title: `Permissão atualizada com sucesso` });
   };
 
-  const validate = (): boolean => {
+  const validate = async (): Promise<boolean> => {
     const newErrors: Record<string, string> = {};
     if (!nome.trim()) newErrors.nome = "Nome é obrigatório";
     if (!sigla.trim()) newErrors.sigla = "Sigla é obrigatória";
@@ -177,13 +178,24 @@ const CadastroOrgaos = () => {
       if (!hasAdmin) newErrors.usuarios = "É necessário ao menos 1 usuário administrador do órgão";
     }
 
-    usuarios.forEach((u, i) => {
+    for (let i = 0; i < usuarios.length; i++) {
+      const u = usuarios[i];
       if (!u.nome.trim()) newErrors[`user_${i}_nome`] = "Nome é obrigatório";
       if (!u.email.trim()) newErrors[`user_${i}_email`] = "E-mail é obrigatório";
-      if (!u.login.trim()) newErrors[`user_${i}_login`] = "Login é obrigatório";
+      if (!u.login.trim()) {
+        newErrors[`user_${i}_login`] = "Login é obrigatório";
+      } else {
+        // Check login uniqueness
+        const { data: existing } = await supabase
+          .from("orgao_usuarios")
+          .select("id")
+          .eq("login", u.login.trim())
+          .maybeSingle();
+        if (existing) newErrors[`user_${i}_login`] = "Este login já está em uso";
+      }
       if (!u.senha.trim()) newErrors[`user_${i}_senha`] = "Senha é obrigatória";
       if (u.senha.length > 0 && u.senha.length < 6) newErrors[`user_${i}_senha`] = "Senha deve ter no mínimo 6 caracteres";
-    });
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -191,7 +203,7 @@ const CadastroOrgaos = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!(await validate())) return;
 
     setSubmitting(true);
     try {
@@ -355,6 +367,7 @@ const CadastroOrgaos = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nome</TableHead>
+                      <TableHead>E-mail</TableHead>
                       <TableHead>Login</TableHead>
                       <TableHead>Perfil</TableHead>
                       <TableHead>Status</TableHead>
@@ -365,6 +378,7 @@ const CadastroOrgaos = () => {
                     {existingUsers.map(eu => (
                       <TableRow key={eu.id}>
                         <TableCell className="font-medium">{eu.nome}</TableCell>
+                        <TableCell className="text-muted-foreground">{eu.email || "—"}</TableCell>
                         <TableCell>{eu.login}</TableCell>
                         <TableCell>
                           <Badge variant={eu.is_admin ? "default" : "outline"}>
