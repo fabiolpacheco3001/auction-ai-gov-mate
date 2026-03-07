@@ -34,9 +34,20 @@ const ApiAccessToken = () => {
   const fetchTokens = async () => {
     if (!user || roleLoading) return;
     setLoading(true);
+
     let query = supabase.from("api_tokens").select("*, orgaos:orgao_id(sigla)").order("created_at", { ascending: false });
-    if (!isSuperAdmin) query = query.eq("user_id", user.id);
-    if (selectedOrgId) query = query.eq("orgao_id", selectedOrgId);
+
+    if (!isSuperAdmin) {
+      if (!selectedOrgId) {
+        setTokens([]);
+        setLoading(false);
+        return;
+      }
+      query = query.eq("orgao_id", selectedOrgId);
+    } else if (selectedOrgId) {
+      query = query.eq("orgao_id", selectedOrgId);
+    }
+
     const { data, error } = await query;
     if (error) {
       toast.error("Erro ao carregar tokens.");
