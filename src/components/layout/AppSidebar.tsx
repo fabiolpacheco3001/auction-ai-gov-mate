@@ -25,6 +25,9 @@ const navItems = [
   { to: "/lotes", label: "Lotes Gerados", icon: PackageSearch },
   { to: "/documentos", label: "Documentos", icon: FileText },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
+];
+
+const adminConfigItems = [
   { to: "/configuracoes/precificacao", label: "Configurações", icon: Settings },
   { to: "/configuracoes/api-token", label: "API Access Token", icon: Key },
 ];

@@ -49,6 +49,28 @@ const SuperAdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isSuperAdmin, isOrgAdmin, loading } = useUserRole();
+
+  useEffect(() => {
+    if (!loading && !isSuperAdmin && !isOrgAdmin) {
+      toast.error("Acesso negado. Apenas administradores podem acessar esta página.");
+    }
+  }, [loading, isSuperAdmin, isOrgAdmin]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 text-accent animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isSuperAdmin && !isOrgAdmin) return <Navigate to="/" replace />;
+
+  return <>{children}</>;
+};
+
 const ProtectedRoutes = () => {
   const { user, loading } = useAuth();
 
@@ -73,8 +95,8 @@ const ProtectedRoutes = () => {
           <Route path="/documentos" element={<Documentos />} />
           <Route path="/relatorios" element={<Relatorios />} />
           
-          <Route path="/configuracoes/precificacao" element={<ConfiguracaoPrecificacao />} />
-          <Route path="/configuracoes/api-token" element={<ApiAccessToken />} />
+          <Route path="/configuracoes/precificacao" element={<AdminRoute><ConfiguracaoPrecificacao /></AdminRoute>} />
+          <Route path="/configuracoes/api-token" element={<AdminRoute><ApiAccessToken /></AdminRoute>} />
           <Route path="/admin/orgaos" element={<SuperAdminRoute><ListaOrgaos /></SuperAdminRoute>} />
           <Route path="/admin/orgaos/novo" element={<SuperAdminRoute><CadastroOrgaos /></SuperAdminRoute>} />
           <Route path="/admin/orgaos/:id/editar" element={<SuperAdminRoute><CadastroOrgaos /></SuperAdminRoute>} />
