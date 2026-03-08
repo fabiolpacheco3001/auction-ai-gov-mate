@@ -23,6 +23,7 @@ export interface LoteItem {
   quantidade: number;
   valor: number;
   precificacao?: Precificacao;
+  imagemVinculada?: string;
 }
 
 export interface LoteClassificado {
