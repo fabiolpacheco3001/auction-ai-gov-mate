@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useNavigate, Link } from "react-router-dom";
 import { CsvClassificationService, ClassificationResult } from "@/services/CsvClassificationService";
+import { imageStore } from "@/stores/imageStore";
 import { ExcelParsingService } from "@/services/ExcelParsingService";
 import { useOrgFilter } from "@/hooks/useOrgFilter";
 import { supabase } from "@/integrations/supabase/client";
@@ -358,7 +359,7 @@ const NovoProcesso = () => {
               Novo Upload
             </Button>
             <Button
-              onClick={() => navigate("/revisao-lotes", { state: { classificationResult, fileName: excelFiles.map((f) => f.name).join(", "), imageMap: Object.fromEntries(imageMap) } })}
+              onClick={() => { imageStore.set(imageMap); navigate("/revisao-lotes", { state: { classificationResult, fileName: excelFiles.map((f) => f.name).join(", ") } }); }}
               className="bg-accent text-accent-foreground hover:bg-accent/90 font-medium px-6"
               disabled={!!classificationResult && classificationResult.errosEncontrados.length > 0}
             >
