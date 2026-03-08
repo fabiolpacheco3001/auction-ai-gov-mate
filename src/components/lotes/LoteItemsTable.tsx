@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -110,9 +111,16 @@ const LoteItemsTable = ({ bens, loteId }: LoteItemsTableProps) => {
               <tr key={item.id} className="border-t border-border/30 hover:bg-muted/20 transition-colors">
                 <td className="px-4 py-2.5 text-center">
                   {item.imagem_url ? (
-                    <a href={item.imagem_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-                      <img src={item.imagem_url} alt={item.descricao} className="w-8 h-8 rounded object-cover inline-block hover:opacity-80 transition-opacity" loading="lazy" />
-                    </a>
+                    <HoverCard>
+                      <HoverCardTrigger asChild>
+                        <a href={item.imagem_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                          <img src={item.imagem_url} alt={item.descricao} className="w-8 h-8 rounded object-cover inline-block hover:opacity-80 transition-opacity" loading="lazy" />
+                        </a>
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-64 p-1" side="right">
+                        <img src={item.imagem_url} alt={item.descricao} className="w-full h-auto rounded object-contain" />
+                      </HoverCardContent>
+                    </HoverCard>
                   ) : (
                     <span className="text-muted-foreground text-xs">—</span>
                   )}
