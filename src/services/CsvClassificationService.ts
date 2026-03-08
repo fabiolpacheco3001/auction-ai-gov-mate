@@ -23,6 +23,7 @@ export interface LoteItem {
   quantidade: number;
   valor: number;
   precificacao?: Precificacao;
+  imagemVinculada?: string;
 }
 
 export interface LoteClassificado {
@@ -65,10 +66,17 @@ export const CsvClassificationService = {
     console.log("Prompt usuario", promptConfigurado);
     console.log("Órgão ID:", orgaoId ?? "nenhum");
 
+    return this.classificarDados(rows, promptConfigurado, orgaoId);
+  },
+
+  async classificarDados(rows: Record<string, string>[], promptConfigurado: string, orgaoId?: string | null): Promise<ClassificationResult> {
+    console.log("Classificando dados:", rows.length, "linhas");
+    console.log("Órgão ID:", orgaoId ?? "nenhum");
+
     if (rows.length === 0) {
       return {
         lotes: [],
-        errosEncontrados: ["Arquivo CSV vazio ou sem dados válidos."],
+        errosEncontrados: ["Arquivo vazio ou sem dados válidos."],
         avisos: [],
         sugestoes: [],
         totalRegistros: 0,
@@ -83,7 +91,7 @@ export const CsvClassificationService = {
 
     if (error) {
       console.error("Erro ao chamar IA:", error);
-      throw new Error(error.message || "Erro ao classificar CSV com IA.");
+      throw new Error(error.message || "Erro ao classificar dados com IA.");
     }
 
     if (data?.error) {
