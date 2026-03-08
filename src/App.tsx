@@ -13,6 +13,7 @@ import LotesGerados from "@/pages/LotesGerados";
 import RevisaoLotes from "@/pages/RevisaoLotes";
 import Documentos from "@/pages/Documentos";
 import Relatorios from "@/pages/Relatorios";
+import LoteImagens from "@/pages/LoteImagens";
 
 import ConfiguracaoPrecificacao from "@/pages/ConfiguracaoPrecificacao";
 import ApiAccessToken from "@/pages/ApiAccessToken";
@@ -94,6 +95,7 @@ const ProtectedRoutes = () => {
           <Route path="/revisao-lotes" element={<RevisaoLotes />} />
           <Route path="/documentos" element={<Documentos />} />
           <Route path="/relatorios" element={<Relatorios />} />
+          <Route path="/lote-imagens/:loteId" element={<LoteImagens />} />
           
           <Route path="/configuracoes/precificacao" element={<AdminRoute><ConfiguracaoPrecificacao /></AdminRoute>} />
           <Route path="/configuracoes/api-token" element={<AdminRoute><ApiAccessToken /></AdminRoute>} />

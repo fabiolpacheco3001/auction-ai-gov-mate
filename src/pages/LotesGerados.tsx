@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { useOrgFilter } from "@/hooks/useOrgFilter";
 import { gerarDocumentoLotes, downloadPdf } from "@/services/DocumentoLoteService";
 import LoteItemsTable from "@/components/lotes/LoteItemsTable";
@@ -56,6 +57,7 @@ interface Bem {
   valor_medio_site2: number | null;
   valor_medio_site3: number | null;
   valor_sugerido: number | null;
+  imagem_url: string | null;
 }
 
 interface Lote {
@@ -83,6 +85,7 @@ interface ProcessoGroup {
 
 const LotesGerados = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { selectedOrgId } = useOrgFilter();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editingPrice, setEditingPrice] = useState<string | null>(null);
@@ -131,7 +134,7 @@ const LotesGerados = () => {
       if (allBemIds.length > 0) {
         const { data: bensData } = await supabase.from("bens").select("*").in("id", allBemIds);
         for (const b of bensData ?? []) {
-          bensMap[b.id] = {
+        bensMap[b.id] = {
             ...b,
             valor_estimado: Number(b.valor_estimado),
             quantidade: Number(b.quantidade ?? 1),
@@ -140,6 +143,7 @@ const LotesGerados = () => {
             valor_medio_site2: b.valor_medio_site2 ? Number(b.valor_medio_site2) : null,
             valor_medio_site3: b.valor_medio_site3 ? Number(b.valor_medio_site3) : null,
             valor_sugerido: b.valor_sugerido ? Number(b.valor_sugerido) : null,
+            imagem_url: b.imagem_url ?? null,
           };
         }
       }
@@ -403,8 +407,28 @@ const LotesGerados = () => {
                             </div>
                             <p className="text-sm text-muted-foreground">{lote.bens.length} {lote.bens.length === 1 ? "item" : "itens"}</p>
                           </div>
+                          {/* Thumbnail grid */}
+                          {(() => {
+                            const bensComImagem = lote.bens.filter((b) => b.imagem_url);
+                            if (bensComImagem.length === 0) return null;
+                            const thumbs = bensComImagem.slice(0, 4);
+                            return (
+                              <div
+                                className="grid grid-cols-2 gap-0.5 w-[44px] h-[44px] rounded-lg overflow-hidden cursor-pointer shrink-0 hover:opacity-80 transition-opacity border border-border"
+                                onClick={(e) => { e.stopPropagation(); navigate(`/lote-imagens/${lote.id}`); }}
+                                title={`${bensComImagem.length} imagem(ns) — clique para ver`}
+                              >
+                                {thumbs.map((b) => (
+                                  <img key={b.id} src={b.imagem_url!} alt="" className="w-full h-full object-cover" loading="lazy" />
+                                ))}
+                                {thumbs.length < 4 && Array.from({ length: 4 - thumbs.length }).map((_, i) => (
+                                  <div key={`empty-${i}`} className="bg-muted" />
+                                ))}
+                              </div>
+                            );
+                          })()}
                           <div className="text-right mr-4">
-                            <p className="text-xs text-muted-foreground">Preço sugerido (IA)</p>
+                             <p className="text-xs text-muted-foreground">Preço sugerido (IA)</p>
                             {editingPrice === lote.id ? (
                               <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                                 <span className="text-sm text-muted-foreground">R$</span>

@@ -25,6 +25,7 @@ interface Bem {
   valor_medio_site2: number | null;
   valor_medio_site3: number | null;
   valor_sugerido: number | null;
+  imagem_url: string | null;
 }
 
 interface LoteItemsTableProps {
@@ -86,6 +87,7 @@ const LoteItemsTable = ({ bens, loteId }: LoteItemsTableProps) => {
       <table className="w-full">
         <thead>
           <tr className="bg-muted/30">
+            <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-2.5 w-12">Foto</th>
             <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-2.5">Tombamento</th>
             <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-2.5">Descrição</th>
             <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-2.5">Qtd</th>
@@ -106,6 +108,15 @@ const LoteItemsTable = ({ bens, loteId }: LoteItemsTableProps) => {
 
             return (
               <tr key={item.id} className="border-t border-border/30 hover:bg-muted/20 transition-colors">
+                <td className="px-4 py-2.5 text-center">
+                  {item.imagem_url ? (
+                    <a href={item.imagem_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                      <img src={item.imagem_url} alt={item.descricao} className="w-8 h-8 rounded object-cover inline-block hover:opacity-80 transition-opacity" loading="lazy" />
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">—</span>
+                  )}
+                </td>
                 <td className="px-4 py-2.5 text-sm font-mono text-muted-foreground">{item.tombamento}</td>
                 <td className="px-4 py-2.5 text-sm text-foreground max-w-[200px] truncate">{item.descricao}</td>
                 <td className="px-4 py-2.5 text-sm text-center text-foreground">{item.quantidade}</td>
