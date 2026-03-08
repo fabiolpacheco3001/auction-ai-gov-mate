@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrgFilter } from "@/hooks/useOrgFilter";
 import { toast } from "sonner";
+import { imageStore } from "@/stores/imageStore";
 import {
   ArrowLeft,
   Check,
@@ -225,7 +226,55 @@ const RevisaoLotes = () => {
 
       if (bensErr) throw bensErr;
 
+      // Upload matched images to storage and update imagem_url
+      const allImages = imageStore.getAll();
       let bemIdx = 0;
+      const allBemItems: { bemDbId: string; tombamento: string }[] = [];
+      for (const lote of lotesComItens) {
+        for (let i = 0; i < lote.itens.length; i++) {
+          allBemItems.push({
+            bemDbId: bensInserted![bemIdx + i].id,
+            tombamento: lote.itens[i].tombamento,
+          });
+        }
+        bemIdx += lote.itens.length;
+      }
+
+      // Upload images in parallel
+      const uploadPromises = allBemItems
+        .filter((b) => {
+          const key = b.tombamento.trim().toLowerCase();
+          return allImages.has(key);
+        })
+        .map(async (b) => {
+          const key = b.tombamento.trim().toLowerCase();
+          const file = allImages.get(key)!;
+          const ext = file.name.split(".").pop() || "jpg";
+          const path = `${processo.id}/${b.bemDbId}.${ext}`;
+
+          const { error: uploadErr } = await supabase.storage
+            .from("bens-imagens")
+            .upload(path, file, { upsert: true });
+
+          if (uploadErr) {
+            console.error("Erro upload imagem:", uploadErr);
+            return;
+          }
+
+          const { data: urlData } = supabase.storage
+            .from("bens-imagens")
+            .getPublicUrl(path);
+
+          await supabase
+            .from("bens")
+            .update({ imagem_url: urlData.publicUrl } as any)
+            .eq("id", b.bemDbId);
+        });
+
+      await Promise.all(uploadPromises);
+      imageStore.clear();
+
+      bemIdx = 0;
       for (const lote of lotesComItens) {
         const precoSugerido = lote.itens.reduce((s, b) => {
           const sites = b.precificacao?.valorMedioPorSite ?? [];
