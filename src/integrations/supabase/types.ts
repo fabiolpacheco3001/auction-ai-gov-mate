@@ -62,6 +62,7 @@ export type Database = {
           descricao: string
           estado: string
           id: string
+          imagem_url: string | null
           localizacao: string
           municipio: string
           processo_id: string | null
@@ -79,6 +80,7 @@ export type Database = {
           descricao: string
           estado?: string
           id?: string
+          imagem_url?: string | null
           localizacao?: string
           municipio?: string
           processo_id?: string | null
@@ -96,6 +98,7 @@ export type Database = {
           descricao?: string
           estado?: string
           id?: string
+          imagem_url?: string | null
           localizacao?: string
           municipio?: string
           processo_id?: string | null
