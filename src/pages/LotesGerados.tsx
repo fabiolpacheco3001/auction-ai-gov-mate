@@ -12,6 +12,7 @@ import {
   Package,
   FileDown,
   FolderOpen,
+  Camera,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -366,7 +367,15 @@ const LotesGerados = () => {
                     )}
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>{group.lotes.length} {group.lotes.length === 1 ? "lote" : "lotes"}</span>
+                    <div className="flex flex-col">
+                      <span>{group.lotes.length} {group.lotes.length === 1 ? "lote" : "lotes"}</span>
+                      <span
+                        className="text-xs text-accent hover:underline cursor-pointer flex items-center gap-1"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/processo-imagens/${group.processo.id}`); }}
+                      >
+                        <Camera className="w-3 h-3" /> Ver Fotos
+                      </span>
+                    </div>
                     <span className="font-medium text-foreground">{currency(groupTotal)}</span>
                     <span className={cn("text-xs px-2 py-0.5 rounded-full", groupApproved === group.lotes.length ? "bg-success/10 text-success" : "bg-warning/10 text-warning")}>
                       {groupApproved}/{group.lotes.length} aprovados
