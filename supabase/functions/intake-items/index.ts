@@ -367,12 +367,20 @@ REGRAS OBRIGATÓRIAS FINAIS
     const totalBens = itensValidados.reduce((s: number, i: any) => s + i.quantidade, 0);
     const arrecadacaoEstimada = itensValidados.reduce((s: number, i: any) => s + i.valor_estimado * i.quantidade, 0);
 
+    // Get next sequential number for this org/year
+    const { data: nextNumero, error: numeroErr } = await supabaseAdmin.rpc(
+      "get_next_processo_numero",
+      { p_orgao_id: tokenRow.orgao_id }
+    );
+    if (numeroErr) throw numeroErr;
+
     const { data: processo, error: procErr } = await supabaseAdmin
       .from("processos")
       .insert({
         titulo,
         user_id: tokenRow.user_id,
         orgao_id: tokenRow.orgao_id,
+        numero: nextNumero,
         total_bens: totalBens,
         total_lotes: lotes.length,
         arrecadacao_estimada: arrecadacaoEstimada,

@@ -75,6 +75,7 @@ interface Lote {
 interface Processo {
   id: string;
   titulo: string;
+  numero?: number;
   sigla_orgao?: string;
   created_at?: string;
 }
