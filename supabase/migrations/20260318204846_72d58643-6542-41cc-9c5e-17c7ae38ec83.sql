@@ -1,0 +1,1 @@
+CREATE POLICY "Authenticated can update lotes_bens" ON public.lotes_bens FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
