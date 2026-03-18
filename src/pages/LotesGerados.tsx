@@ -116,9 +116,9 @@ const LotesGerados = () => {
       // Fetch processos
       let processosMap: Record<string, Processo> = {};
       if (fetchedProcessoIds.length > 0) {
-        const { data: processosData } = await supabase.from("processos").select("id, titulo, created_at, orgaos:orgao_id(sigla)").in("id", fetchedProcessoIds);
+        const { data: processosData } = await supabase.from("processos").select("id, titulo, numero, created_at, orgaos:orgao_id(sigla)").in("id", fetchedProcessoIds);
         for (const p of processosData ?? []) {
-          processosMap[p.id] = { id: p.id, titulo: p.titulo, created_at: p.created_at, sigla_orgao: (p as any).orgaos?.sigla ?? "" };
+          processosMap[p.id] = { id: p.id, titulo: p.titulo, numero: (p as any).numero ?? undefined, created_at: p.created_at, sigla_orgao: (p as any).orgaos?.sigla ?? "" };
         }
       }
 
