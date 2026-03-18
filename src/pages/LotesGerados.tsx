@@ -503,7 +503,23 @@ const LotesGerados = () => {
                         </div>
 
                         {isExpanded && (
-                          <LoteItemsTable bens={lote.bens} loteId={lote.id} />
+                          <LoteItemsTable
+                            bens={lote.bens}
+                            loteId={lote.id}
+                            isApproved={isApproved}
+                            otherLotes={
+                              isApproved
+                                ? undefined
+                                : group.lotes
+                                    .filter((ol) => ol.id !== lote.id && ol.status !== "aprovado")
+                                    .map((ol) => ({ id: ol.id, numero: ol.numero, categoria: ol.categoria }))
+                            }
+                            onMoveItem={
+                              isApproved
+                                ? undefined
+                                : (bemId, targetLoteId) => handleMoveItem(bemId, lote.id, targetLoteId)
+                            }
+                          />
                         )}
                       </div>
                     );
