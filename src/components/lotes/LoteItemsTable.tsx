@@ -4,6 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { MoveRight } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const estadoLabels: Record<string, string> = {
   bom: "Bom",
@@ -29,9 +37,18 @@ interface Bem {
   imagem_url: string | null;
 }
 
+interface OtherLote {
+  id: string;
+  numero: number;
+  categoria: string;
+}
+
 interface LoteItemsTableProps {
   bens: Bem[];
   loteId: string;
+  isApproved?: boolean;
+  otherLotes?: OtherLote[];
+  onMoveItem?: (bemId: string, targetLoteId: string) => void;
 }
 
 const currency = (v: number) =>
@@ -48,10 +65,12 @@ const calcValorSugerido = (bem: Bem): number => {
   return values.reduce((a, b) => a + b, 0) / values.length;
 };
 
-const LoteItemsTable = ({ bens, loteId }: LoteItemsTableProps) => {
+const LoteItemsTable = ({ bens, loteId, isApproved, otherLotes, onMoveItem }: LoteItemsTableProps) => {
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+
+  const showMoveColumn = !isApproved && otherLotes && otherLotes.length > 0 && onMoveItem;
 
   const startEdit = (bem: Bem) => {
     setEditingId(bem.id);
@@ -100,6 +119,9 @@ const LoteItemsTable = ({ bens, loteId }: LoteItemsTableProps) => {
             <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-2.5">V. Médio Site 2</th>
             <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-2.5">V. Médio Site 3</th>
             <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-2.5">Valor Sugerido</th>
+            {showMoveColumn && (
+              <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-2.5">Ações</th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -168,6 +190,23 @@ const LoteItemsTable = ({ bens, loteId }: LoteItemsTableProps) => {
                     </span>
                   )}
                 </td>
+                {showMoveColumn && (
+                  <td className="px-4 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                    <Select onValueChange={(targetLoteId) => onMoveItem!(item.id, targetLoteId)}>
+                      <SelectTrigger className="w-[120px] h-7 text-xs mx-auto">
+                        <MoveRight className="w-3 h-3 mr-1 shrink-0" />
+                        <SelectValue placeholder="Mover para" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {otherLotes!.map((ol) => (
+                          <SelectItem key={ol.id} value={ol.id}>
+                            Lote {ol.numero} — {ol.categoria}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
+                )}
               </tr>
             );
           })}

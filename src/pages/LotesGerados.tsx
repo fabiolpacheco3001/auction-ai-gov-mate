@@ -286,6 +286,37 @@ const LotesGerados = () => {
     setSelectedProcessos(new Set());
   };
 
+  const handleMoveItem = async (bemId: string, fromLoteId: string, toLoteId: string) => {
+    try {
+      // 1. Move the item: delete old link, insert new
+      await supabase.from("lotes_bens").update({ lote_id: toLoteId }).eq("bem_id", bemId).eq("lote_id", fromLoteId);
+
+      // 2. Recalculate prices for both lotes
+      for (const loteId of [fromLoteId, toLoteId]) {
+        const { data: loteBens } = await supabase.from("lotes_bens").select("bem_id").eq("lote_id", loteId);
+        const bemIds = (loteBens ?? []).map((lb) => lb.bem_id);
+        let newPrice = 0;
+        if (bemIds.length > 0) {
+          const { data: bensData } = await supabase.from("bens").select("quantidade, valor_estimado, valor_medio_site1, valor_medio_site2, valor_medio_site3, valor_sugerido").in("id", bemIds);
+          for (const b of bensData ?? []) {
+            const values = [b.valor_estimado, b.valor_medio_site1, b.valor_medio_site2, b.valor_medio_site3]
+              .map((v) => v ? Number(v) : 0)
+              .filter((v) => v > 0);
+            const vs = b.valor_sugerido ? Number(b.valor_sugerido) : (values.length > 0 ? values.reduce((a, c) => a + c, 0) / values.length : 0);
+            newPrice += Number(b.quantidade ?? 1) * vs;
+          }
+        }
+        await supabase.from("lotes").update({ preco_sugerido: newPrice }).eq("id", loteId);
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["lotes-by-processo"] });
+      toast.success("Item movido com sucesso!");
+    } catch (err) {
+      console.error("Erro ao mover item:", err);
+      toast.error("Erro ao mover item entre lotes.");
+    }
+  };
+
   const totalEstimado = allLotes.reduce((sum, l) => sum + l.preco_sugerido, 0);
   const currency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
