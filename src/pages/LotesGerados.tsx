@@ -75,6 +75,7 @@ interface Lote {
 interface Processo {
   id: string;
   titulo: string;
+  numero?: number;
   sigla_orgao?: string;
   created_at?: string;
 }
@@ -115,9 +116,9 @@ const LotesGerados = () => {
       // Fetch processos
       let processosMap: Record<string, Processo> = {};
       if (fetchedProcessoIds.length > 0) {
-        const { data: processosData } = await supabase.from("processos").select("id, titulo, created_at, orgaos:orgao_id(sigla)").in("id", fetchedProcessoIds);
+        const { data: processosData } = await supabase.from("processos").select("id, titulo, numero, created_at, orgaos:orgao_id(sigla)").in("id", fetchedProcessoIds);
         for (const p of processosData ?? []) {
-          processosMap[p.id] = { id: p.id, titulo: p.titulo, created_at: p.created_at, sigla_orgao: (p as any).orgaos?.sigla ?? "" };
+          processosMap[p.id] = { id: p.id, titulo: p.titulo, numero: (p as any).numero ?? undefined, created_at: p.created_at, sigla_orgao: (p as any).orgaos?.sigla ?? "" };
         }
       }
 
@@ -355,7 +356,11 @@ const LotesGerados = () => {
                   <FolderOpen className="w-5 h-5 text-accent shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
-                      <h2 className="font-display font-semibold text-foreground truncate">{group.processo.titulo}</h2>
+                      <h2 className="font-display font-semibold text-foreground truncate">
+                        {group.processo.numero && group.processo.created_at
+                          ? `${String(group.processo.numero).padStart(3, '0')}/${new Date(group.processo.created_at).getFullYear()} - ${group.processo.titulo}`
+                          : group.processo.titulo}
+                      </h2>
                       {group.processo.created_at && (
                         <p className="text-xs text-muted-foreground">
                           {new Date(group.processo.created_at).toLocaleDateString("pt-BR")} {new Date(group.processo.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}

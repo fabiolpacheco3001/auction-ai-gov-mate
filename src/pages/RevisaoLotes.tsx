@@ -169,17 +169,26 @@ const RevisaoLotes = () => {
 
     setSaving(true);
     try {
+      const orgId = selectedOrgId || null;
+      const { data: numeroData, error: numeroErr } = await supabase.rpc(
+        "get_next_processo_numero",
+        { p_orgao_id: orgId }
+      );
+      if (numeroErr) throw numeroErr;
+      const nextNumero = numeroData as number;
+
       const { data: processo, error: procErr } = await supabase
         .from("processos")
         .insert({
           titulo: `Processo - ${fileName}`,
           user_id: user.id,
-          orgao_id: selectedOrgId || null,
+          orgao_id: orgId,
+          numero: nextNumero,
           total_bens: totalBens,
           total_lotes: lotesComItens.length,
           arrecadacao_estimada: totalValor,
           status: "revisao",
-        })
+        } as any)
         .select("id")
         .single();
 

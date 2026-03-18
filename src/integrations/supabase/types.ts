@@ -376,6 +376,7 @@ export type Database = {
           created_at: string
           data_upload: string
           id: string
+          numero: number | null
           orgao_id: string | null
           status: string
           titulo: string
@@ -390,6 +391,7 @@ export type Database = {
           created_at?: string
           data_upload?: string
           id?: string
+          numero?: number | null
           orgao_id?: string | null
           status?: string
           titulo: string
@@ -404,6 +406,7 @@ export type Database = {
           created_at?: string
           data_upload?: string
           id?: string
+          numero?: number | null
           orgao_id?: string | null
           status?: string
           titulo?: string
@@ -481,6 +484,10 @@ export type Database = {
     }
     Functions: {
       get_admin_orgao_ids: { Args: { _user_id: string }; Returns: string[] }
+      get_next_processo_numero: {
+        Args: { p_orgao_id: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
