@@ -356,7 +356,11 @@ const LotesGerados = () => {
                   <FolderOpen className="w-5 h-5 text-accent shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
-                      <h2 className="font-display font-semibold text-foreground truncate">{group.processo.titulo}</h2>
+                      <h2 className="font-display font-semibold text-foreground truncate">
+                        {group.processo.numero && group.processo.created_at
+                          ? `${String(group.processo.numero).padStart(3, '0')}/${new Date(group.processo.created_at).getFullYear()} - ${group.processo.titulo}`
+                          : group.processo.titulo}
+                      </h2>
                       {group.processo.created_at && (
                         <p className="text-xs text-muted-foreground">
                           {new Date(group.processo.created_at).toLocaleDateString("pt-BR")} {new Date(group.processo.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
