@@ -230,7 +230,7 @@ function addPdfHeader(doc: jsPDF, logoDataUrl?: string | null, logoDims?: { widt
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
-    doc.text("DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO", pageWidth / 2, 26, { align: "center" });
+    doc.text("DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA ALIENAÇÃO", pageWidth / 2, 26, { align: "center" });
   } else {
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
