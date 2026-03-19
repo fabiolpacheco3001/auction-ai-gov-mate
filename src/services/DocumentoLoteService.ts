@@ -13,6 +13,7 @@ export interface Bem {
   municipio: string;
   valor_estimado: number;
   categoria: string;
+  imagem_url: string | null;
 }
 
 export interface LoteComBens {
@@ -44,7 +45,7 @@ export async function fetchLotesComBens(processoId: string) {
   if (allBemIds.length > 0) {
     const { data: bensData } = await supabase.from("bens").select("*").in("id", allBemIds);
     for (const b of bensData ?? []) {
-      bensMap[b.id] = { ...b, valor_estimado: Number(b.valor_estimado), quantidade: Number(b.quantidade ?? 1) };
+      bensMap[b.id] = { ...b, valor_estimado: Number(b.valor_estimado), quantidade: Number(b.quantidade ?? 1), imagem_url: b.imagem_url ?? null };
     }
   }
 
@@ -66,14 +67,34 @@ export async function fetchLotesComBens(processoId: string) {
   return lotes;
 }
 
+/** Build the display label for a processo, e.g. "001/2026 - SIGLA - Título" */
+export async function fetchProcessoLabel(processoId: string): Promise<string> {
+  const { data } = await supabase
+    .from("processos")
+    .select("titulo, numero, created_at, orgaos:orgao_id(sigla)")
+    .eq("id", processoId)
+    .single();
+  if (!data) return "";
+  const p = data as any;
+  const sigla = p.orgaos?.sigla ?? "";
+  if (p.numero && p.created_at) {
+    const year = new Date(p.created_at).getFullYear();
+    const num = String(p.numero).padStart(3, "0");
+    return `${num}/${year}${sigla ? ` - ${sigla}` : ""} - ${p.titulo}`;
+  }
+  return `${sigla ? `${sigla} - ` : ""}${p.titulo}`;
+}
+
 export async function gerarDocumentoLotes(processoId: string, processoTitulo: string) {
   const lotes = await fetchLotesComBens(processoId);
   if (!lotes) return null;
 
+  const label = await fetchProcessoLabel(processoId);
+
   const { data: doc, error } = await supabase.from("documentos").insert({
-    nome: `Composição de Lotes - ${processoTitulo}`,
+    nome: `Composição de Lotes - ${label || processoTitulo}`,
     processo_id: processoId,
-    processo_titulo: processoTitulo,
+    processo_titulo: label || processoTitulo,
     tipo: "Composição de Lotes",
     status: "finalizado",
   }).select().single();
@@ -114,7 +135,6 @@ async function loadImageAsBase64(url: string): Promise<string | null> {
     const isSvg = blob.type === "image/svg+xml" || url.toLowerCase().endsWith(".svg");
 
     if (isSvg) {
-      // Convert SVG to PNG using canvas
       const svgText = await blob.text();
       const svgBlob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
       const svgUrl = URL.createObjectURL(svgBlob);
@@ -122,7 +142,7 @@ async function loadImageAsBase64(url: string): Promise<string | null> {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement("canvas");
-          const scale = 2; // higher quality
+          const scale = 2;
           canvas.width = img.width * scale || 400;
           canvas.height = img.height * scale || 100;
           const ctx = canvas.getContext("2d");
@@ -162,29 +182,56 @@ function getImageDimensions(dataUrl: string): Promise<{ width: number; height: n
   });
 }
 
+// ── Fit dimensions inside a max bounding box, preserving aspect ratio. Never upscale.
+function fitDimensions(
+  origW: number, origH: number, maxW: number, maxH: number
+): { width: number; height: number } {
+  if (origW <= maxW && origH <= maxH) return { width: origW, height: origH };
+  const scale = Math.min(maxW / origW, maxH / origH);
+  return { width: Math.round(origW * scale), height: Math.round(origH * scale) };
+}
+
+// ── Pre-load item images as base64 (only for items that have imagem_url)
+async function preloadItemImages(lotes: LoteComBens[]): Promise<Record<string, string>> {
+  const map: Record<string, string> = {};
+  const promises: Promise<void>[] = [];
+  for (const lote of lotes) {
+    for (const bem of lote.bens) {
+      if (bem.imagem_url) {
+        promises.push(
+          loadImageAsBase64(bem.imagem_url).then((b64) => {
+            if (b64) map[bem.id] = b64;
+          })
+        );
+      }
+    }
+  }
+  await Promise.all(promises);
+  return map;
+}
+
 // ───── PDF Generation ─────
 
-function addPdfHeader(doc: jsPDF, logoDataUrl?: string | null) {
+function addPdfHeader(doc: jsPDF, logoDataUrl?: string | null, logoDims?: { width: number; height: number } | null) {
   const pageWidth = 210;
-  // Header background
   doc.setFillColor(20, 60, 100);
   doc.rect(0, 0, pageWidth, 32, "F");
 
-  if (logoDataUrl) {
-    // Logo centered with title
-    const logoH = 16;
-    const logoW = 40; // max width
-    const logoX = (pageWidth - logoW) / 2;
+  if (logoDataUrl && logoDims) {
+    // Fit logo inside max box (40mm x 16mm), preserving aspect ratio, no upscale
+    const fitted = fitDimensions(logoDims.width, logoDims.height, 40, 16);
+    // Convert pixel dims to mm (approximate: assume 96dpi → 1px ≈ 0.264mm)
+    // But logoDims here are already in a reasonable mm-like scale from the caller
+    const logoX = (pageWidth - fitted.width) / 2;
+    const logoY = 3 + (16 - fitted.height) / 2; // center vertically in the 16mm space
     try {
-      doc.addImage(logoDataUrl, "PNG", logoX, 3, logoW, logoH, undefined, "FAST");
+      doc.addImage(logoDataUrl, "PNG", logoX, logoY, fitted.width, fitted.height, undefined, "FAST");
     } catch { /* fallback to text */ }
-    // Title centered below logo
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
     doc.text("DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO", pageWidth / 2, 26, { align: "center" });
   } else {
-    // Fallback: text centered
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
@@ -221,7 +268,21 @@ export async function gerarPdf(processoTitulo: string, lotes: LoteComBens[]): Pr
   const logoUrl = await fetchLogoUrl();
   const logoDataUrl = logoUrl ? await loadImageAsBase64(logoUrl) : null;
 
-  addPdfHeader(doc, logoDataUrl);
+  // Calculate logo dimensions in mm for PDF, preserving aspect ratio
+  let logoDimsMm: { width: number; height: number } | null = null;
+  if (logoDataUrl) {
+    const dims = await getImageDimensions(logoDataUrl);
+    // Convert pixels to mm (96dpi → 1px ≈ 0.264mm)
+    const pxToMm = 0.264;
+    const origWMm = dims.width * pxToMm;
+    const origHMm = dims.height * pxToMm;
+    logoDimsMm = fitDimensions(origWMm, origHMm, 40, 16);
+  }
+
+  // Preload item images
+  const itemImages = await preloadItemImages(lotes);
+
+  addPdfHeader(doc, logoDataUrl, logoDimsMm);
 
   doc.setFontSize(10);
   doc.text(`Processo: ${processoTitulo}`, 14, 40);
@@ -234,7 +295,7 @@ export async function gerarPdf(processoTitulo: string, lotes: LoteComBens[]): Pr
   for (const lote of lotes) {
     if (startY > 240) {
       doc.addPage();
-      addPdfHeader(doc, logoDataUrl);
+      addPdfHeader(doc, logoDataUrl, logoDimsMm);
       startY = 40;
     }
 
@@ -254,19 +315,53 @@ export async function gerarPdf(processoTitulo: string, lotes: LoteComBens[]): Pr
       startY += 5;
     }
 
-    autoTable(doc, {
-      startY,
-      head: [["Tombamento", "Descrição", "Qtd", "Estado"]],
-      body: lote.bens.map((item) => [
-        item.tombamento || "—",
-        item.descricao || "—",
-        String(item.quantidade),
-        estadoLabels[item.estado] ?? item.estado,
-      ]),
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [41, 128, 185] },
-      margin: { left: 14, right: 14, bottom: 24 },
-    });
+    // Check if any item has image
+    const hasImages = lote.bens.some((b) => itemImages[b.id]);
+
+    if (hasImages) {
+      autoTable(doc, {
+        startY,
+        head: [["Imagem", "Tombamento", "Descrição", "Qtd", "Estado"]],
+        body: lote.bens.map((item) => [
+          "", // placeholder for image
+          item.tombamento || "—",
+          item.descricao || "—",
+          String(item.quantidade),
+          estadoLabels[item.estado] ?? item.estado,
+        ]),
+        columnStyles: {
+          0: { cellWidth: 22, minCellHeight: 18 },
+        },
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [41, 128, 185] },
+        margin: { left: 14, right: 14, bottom: 24 },
+        didDrawCell: (data: any) => {
+          if (data.section === "body" && data.column.index === 0) {
+            const bem = lote.bens[data.row.index];
+            const imgData = bem ? itemImages[bem.id] : null;
+            if (imgData) {
+              try {
+                doc.addImage(imgData, "JPEG", data.cell.x + 1, data.cell.y + 1, 16, 16, undefined, "FAST");
+              } catch { /* ignore */ }
+            }
+          }
+        },
+      });
+    } else {
+      autoTable(doc, {
+        startY,
+        head: [["Tombamento", "Descrição", "Qtd", "Estado"]],
+        body: lote.bens.map((item) => [
+          item.tombamento || "—",
+          item.descricao || "—",
+          String(item.quantidade),
+          estadoLabels[item.estado] ?? item.estado,
+        ]),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [41, 128, 185] },
+        margin: { left: 14, right: 14, bottom: 24 },
+      });
+    }
 
     startY = (doc as any).lastAutoTable.finalY + 10;
   }
@@ -287,14 +382,29 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
   const ws = wb.addWorksheet("Composição de Lotes");
   const totalAprovado = lotes.reduce((s, l) => s + (l.preco_aprovado ?? l.preco_sugerido), 0);
 
-  ws.columns = [
-    { width: 22 },
-    { width: 52 },
-    { width: 10 },
-    { width: 18 },
-  ];
+  // Preload item images
+  const itemImages = await preloadItemImages(lotes);
 
-  const colCount = 4;
+  const hasAnyImage = Object.keys(itemImages).length > 0;
+  const colCount = hasAnyImage ? 5 : 4;
+
+  if (hasAnyImage) {
+    ws.columns = [
+      { width: 12 }, // Imagem
+      { width: 22 },
+      { width: 52 },
+      { width: 10 },
+      { width: 18 },
+    ];
+  } else {
+    ws.columns = [
+      { width: 22 },
+      { width: 52 },
+      { width: 10 },
+      { width: 18 },
+    ];
+  }
+
   const headerFill: ExcelJS.FillPattern = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2980B9" } };
   const headerFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
   const boldFont: Partial<ExcelJS.Font> = { bold: true, size: 10 };
@@ -313,11 +423,15 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
   // Try to add logo image
   const logoUrl = await fetchLogoUrl();
   let logoImageId: number | null = null;
+  let logoNaturalDims = { width: 160, height: 45 };
 
   if (logoUrl) {
     try {
       const logoDataUrl = await loadImageAsBase64(logoUrl);
       if (logoDataUrl) {
+        const dims = await getImageDimensions(logoDataUrl);
+        // Fit within max 160x45 without upscaling
+        logoNaturalDims = fitDimensions(dims.width, dims.height, 160, 45);
         const base64Data = logoDataUrl.split(",")[1];
         const ext = logoDataUrl.includes("image/png") ? "png" as const : "jpeg" as const;
         logoImageId = wb.addImage({ base64: base64Data, extension: ext });
@@ -333,7 +447,7 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
 
     ws.addImage(logoImageId, {
       tl: { col: 1, row: logoRow.number - 1 + 0.1 },
-      ext: { width: 160, height: 45 },
+      ext: { width: logoNaturalDims.width, height: logoNaturalDims.height },
     });
   } else {
     const appRow = ws.addRow(["\u2696 " + APP_NAME]);
@@ -382,7 +496,8 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
       locRow.getCell(1).font = boldFont;
     }
 
-    const thRow = ws.addRow(["Tombamento", "Descrição", "Qtd", "Estado"]);
+    const headers = hasAnyImage ? ["Imagem", "Tombamento", "Descrição", "Qtd", "Estado"] : ["Tombamento", "Descrição", "Qtd", "Estado"];
+    const thRow = ws.addRow(headers);
     for (let c = 1; c <= colCount; c++) {
       const cell = thRow.getCell(c);
       cell.fill = headerFill;
@@ -392,16 +507,29 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
     }
 
     for (const item of lote.bens) {
-      const dr = ws.addRow([
-        item.tombamento || "—",
-        item.descricao || "—",
-        item.quantidade,
-        estadoLabels[item.estado] ?? item.estado,
-      ]);
+      const rowData = hasAnyImage
+        ? ["", item.tombamento || "—", item.descricao || "—", item.quantidade, estadoLabels[item.estado] ?? item.estado]
+        : [item.tombamento || "—", item.descricao || "—", item.quantidade, estadoLabels[item.estado] ?? item.estado];
+      const dr = ws.addRow(rowData);
       for (let c = 1; c <= colCount; c++) {
         dr.getCell(c).border = thinBorder;
       }
-      dr.getCell(3).alignment = { horizontal: "center" };
+      const qtyCol = hasAnyImage ? 4 : 3;
+      dr.getCell(qtyCol).alignment = { horizontal: "center" };
+
+      // Add image if available
+      if (hasAnyImage && itemImages[item.id]) {
+        try {
+          const imgB64 = itemImages[item.id].split(",")[1];
+          const imgExt = itemImages[item.id].includes("image/png") ? "png" as const : "jpeg" as const;
+          const imgId = wb.addImage({ base64: imgB64, extension: imgExt });
+          dr.height = 50;
+          ws.addImage(imgId, {
+            tl: { col: 0, row: dr.number - 1 + 0.1 },
+            ext: { width: 60, height: 45 },
+          });
+        } catch { /* ignore */ }
+      }
     }
 
     ws.addRow([]);
@@ -438,15 +566,32 @@ export async function downloadDocx(processoTitulo: string, lotes: LoteComBens[])
     try {
       const response = await fetch(logoUrl);
       logoBuffer = await response.arrayBuffer();
-      // Get dimensions
       const dataUrl = await loadImageAsBase64(logoUrl);
       if (dataUrl) {
         const dims = await getImageDimensions(dataUrl);
-        const maxH = 50;
-        const scale = maxH / dims.height;
-        logoDims = { width: Math.round(dims.width * scale), height: maxH };
+        // Fit within max 150x50, preserving aspect ratio, no upscale
+        logoDims = fitDimensions(dims.width, dims.height, 150, 50);
       }
     } catch { logoBuffer = null; }
+  }
+
+  // Preload item images for DOCX
+  const itemImageBuffers: Record<string, { buffer: ArrayBuffer; dims: { width: number; height: number } }> = {};
+  for (const lote of lotes) {
+    for (const bem of lote.bens) {
+      if (bem.imagem_url) {
+        try {
+          const resp = await fetch(bem.imagem_url);
+          const buf = await resp.arrayBuffer();
+          const dataUrl = await loadImageAsBase64(bem.imagem_url);
+          if (dataUrl) {
+            const dims = await getImageDimensions(dataUrl);
+            const fitted = fitDimensions(dims.width, dims.height, 60, 60);
+            itemImageBuffers[bem.id] = { buffer: buf, dims: fitted };
+          }
+        } catch { /* ignore */ }
+      }
+    }
   }
 
   const children: any[] = [];
@@ -501,7 +646,10 @@ export async function downloadDocx(processoTitulo: string, lotes: LoteComBens[])
       }));
     }
 
-    const headerCells = ["Tombamento", "Descrição", "Qtd", "Estado"].map(
+    const hasImages = lote.bens.some((b) => itemImageBuffers[b.id]);
+
+    const headerTexts = hasImages ? ["Imagem", "Tombamento", "Descrição", "Qtd", "Estado"] : ["Tombamento", "Descrição", "Qtd", "Estado"];
+    const headerCells = headerTexts.map(
       (h) => new TableCell({
         shading: { type: ShadingType.SOLID, color: "2980B9" },
         borders: cellBorders,
@@ -510,21 +658,47 @@ export async function downloadDocx(processoTitulo: string, lotes: LoteComBens[])
     );
 
     const dataRows = lote.bens.map((item) => {
+      const cells: any[] = [];
+
+      if (hasImages) {
+        const imgData = itemImageBuffers[item.id];
+        if (imgData) {
+          cells.push(new TableCell({
+            borders: cellBorders,
+            children: [new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [new ImageRun({
+                data: imgData.buffer,
+                transformation: { width: imgData.dims.width, height: imgData.dims.height },
+                type: "png",
+              })],
+            })],
+          }));
+        } else {
+          cells.push(new TableCell({
+            borders: cellBorders,
+            children: [new Paragraph({ children: [new TextRun({ text: "—", size: 18 })] })],
+          }));
+        }
+      }
+
       const vals = [
         item.tombamento || "—",
         item.descricao || "—",
         String(item.quantidade),
         estadoLabels[item.estado] ?? item.estado,
       ];
-      return new TableRow({
-        children: vals.map((v, i) => new TableCell({
+      for (let i = 0; i < vals.length; i++) {
+        cells.push(new TableCell({
           borders: cellBorders,
           children: [new Paragraph({
             alignment: i === 2 ? AlignmentType.CENTER : AlignmentType.LEFT,
-            children: [new TextRun({ text: v, size: 18 })],
+            children: [new TextRun({ text: vals[i], size: 18 })],
           })],
-        })),
-      });
+        }));
+      }
+
+      return new TableRow({ children: cells });
     });
 
     children.push(new Table({
