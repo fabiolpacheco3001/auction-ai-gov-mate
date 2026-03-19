@@ -458,7 +458,7 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
     for (let c = 2; c <= colCount; c++) appRow.getCell(c).fill = headerBgFill;
   }
 
-  const docTitleRow = ws.addRow(["DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO"]);
+  const docTitleRow = ws.addRow(["DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA ALIENAÇÃO"]);
   docTitleRow.getCell(1).font = subHeaderFont;
   docTitleRow.getCell(1).fill = headerBgFill;
   docTitleRow.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
