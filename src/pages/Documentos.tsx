@@ -25,9 +25,24 @@ const Documentos = () => {
   const { data: documentos = [] } = useQuery({
     queryKey: ["documentos", selectedOrgId],
     queryFn: async () => {
-      let query = supabase.from("documentos").select("*").order("created_at", { ascending: false });
-      if (selectedOrgId) query = query.eq("orgao_id", selectedOrgId);
-      const { data } = await query;
+      if (selectedOrgId) {
+        const { data: processoIds } = await supabase
+          .from("processos")
+          .select("id")
+          .eq("orgao_id", selectedOrgId);
+        if (!processoIds?.length) return [];
+        const ids = processoIds.map((p) => p.id);
+        const { data } = await supabase
+          .from("documentos")
+          .select("*")
+          .in("processo_id", ids)
+          .order("created_at", { ascending: false });
+        return data ?? [];
+      }
+      const { data } = await supabase
+        .from("documentos")
+        .select("*")
+        .order("created_at", { ascending: false });
       return data ?? [];
     },
   });
