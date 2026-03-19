@@ -96,7 +96,7 @@ const LotesGerados = () => {
   const [openProcessos, setOpenProcessos] = useState<Set<string>>(new Set());
   const [selectedProcessos, setSelectedProcessos] = useState<Set<string>>(new Set());
 
-  const { data: groups = [] } = useQuery<ProcessoGroup[]>({
+  const { data: groups = [], isLoading } = useQuery<ProcessoGroup[]>({
     queryKey: ["lotes-by-processo", selectedOrgId],
     queryFn: async () => {
       let lotesQuery = supabase.from("lotes").select("*").order("numero");
