@@ -737,7 +737,7 @@ export async function downloadDocx(processoTitulo: string, lotes: LoteComBens[])
   headerChildren.push(new Paragraph({
     alignment: AlignmentType.CENTER,
     shading: { type: ShadingType.SOLID, color: "143C64" },
-    children: [new TextRun({ text: "DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO", color: "FFFFFF", size: 20 })],
+    children: [new TextRun({ text: "DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA ALIENAÇÃO", color: "FFFFFF", size: 20 })],
   }));
 
   const doc = new Document({

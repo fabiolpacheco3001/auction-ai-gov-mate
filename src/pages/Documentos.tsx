@@ -96,7 +96,7 @@ const Documentos = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">Documentos</h1>
-          <p className="text-muted-foreground mt-1">Geração e exportação de documentos para leilão</p>
+          <p className="text-muted-foreground mt-1">Geração e exportação de documentos para alienação</p>
         </div>
         <Button variant="outline" className="gap-2">
           <Filter className="w-4 h-4" /> Filtrar
