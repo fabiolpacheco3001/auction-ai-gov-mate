@@ -22,7 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useOrgFilter } from "@/hooks/useOrgFilter";
-import { gerarDocumentoLotes, downloadPdf } from "@/services/DocumentoLoteService";
+import { gerarDocumentoLotes, downloadPdf, fetchProcessoLabel } from "@/services/DocumentoLoteService";
 import LoteItemsTable from "@/components/lotes/LoteItemsTable";
 import {
   Collapsible,
@@ -232,9 +232,10 @@ const LotesGerados = () => {
     if (!group) return;
 
     try {
+      const label = await fetchProcessoLabel(processoId);
       const result = await gerarDocumentoLotes(processoId, group.processo.titulo);
       if (result) {
-        await downloadPdf(group.processo.titulo, result.lotes);
+        await downloadPdf(label || group.processo.titulo, result.lotes);
         queryClient.invalidateQueries({ queryKey: ["documentos"] });
         toast.success("Documento PDF de composição de lotes gerado com sucesso!");
       }
