@@ -230,7 +230,7 @@ function addPdfHeader(doc: jsPDF, logoDataUrl?: string | null, logoDims?: { widt
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
-    doc.text("DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO", pageWidth / 2, 26, { align: "center" });
+    doc.text("DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA ALIENAÇÃO", pageWidth / 2, 26, { align: "center" });
   } else {
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
@@ -239,7 +239,7 @@ function addPdfHeader(doc: jsPDF, logoDataUrl?: string | null, logoDims?: { widt
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO", pageWidth / 2, 22, { align: "center" });
+    doc.text("DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA ALIENAÇÃO", pageWidth / 2, 22, { align: "center" });
   }
 
   doc.setTextColor(0, 0, 0);
@@ -458,7 +458,7 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
     for (let c = 2; c <= colCount; c++) appRow.getCell(c).fill = headerBgFill;
   }
 
-  const docTitleRow = ws.addRow(["DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO"]);
+  const docTitleRow = ws.addRow(["DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA ALIENAÇÃO"]);
   docTitleRow.getCell(1).font = subHeaderFont;
   docTitleRow.getCell(1).fill = headerBgFill;
   docTitleRow.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
@@ -737,7 +737,7 @@ export async function downloadDocx(processoTitulo: string, lotes: LoteComBens[])
   headerChildren.push(new Paragraph({
     alignment: AlignmentType.CENTER,
     shading: { type: ShadingType.SOLID, color: "143C64" },
-    children: [new TextRun({ text: "DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA LEILÃO", color: "FFFFFF", size: 20 })],
+    children: [new TextRun({ text: "DOCUMENTO DE COMPOSIÇÃO DE LOTES PARA ALIENAÇÃO", color: "FFFFFF", size: 20 })],
   }));
 
   const doc = new Document({
