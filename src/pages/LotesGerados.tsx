@@ -13,6 +13,7 @@ import {
   FileDown,
   FolderOpen,
   Camera,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -95,7 +96,7 @@ const LotesGerados = () => {
   const [openProcessos, setOpenProcessos] = useState<Set<string>>(new Set());
   const [selectedProcessos, setSelectedProcessos] = useState<Set<string>>(new Set());
 
-  const { data: groups = [] } = useQuery<ProcessoGroup[]>({
+  const { data: groups = [], isLoading } = useQuery<ProcessoGroup[]>({
     queryKey: ["lotes-by-processo", selectedOrgId],
     queryFn: async () => {
       let lotesQuery = supabase.from("lotes").select("*").order("numero");
@@ -193,6 +194,15 @@ const LotesGerados = () => {
       return result;
     },
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Carregando dados...</p>
+      </div>
+    );
+  }
 
   const allLotes = groups.flatMap((g) => g.lotes);
 
