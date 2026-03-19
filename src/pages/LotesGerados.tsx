@@ -232,9 +232,10 @@ const LotesGerados = () => {
     if (!group) return;
 
     try {
+      const label = await fetchProcessoLabel(processoId);
       const result = await gerarDocumentoLotes(processoId, group.processo.titulo);
       if (result) {
-        await downloadPdf(group.processo.titulo, result.lotes);
+        await downloadPdf(label || group.processo.titulo, result.lotes);
         queryClient.invalidateQueries({ queryKey: ["documentos"] });
         toast.success("Documento PDF de composição de lotes gerado com sucesso!");
       }
