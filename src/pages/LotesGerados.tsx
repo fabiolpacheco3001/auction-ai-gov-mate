@@ -195,6 +195,15 @@ const LotesGerados = () => {
     },
   });
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Carregando dados...</p>
+      </div>
+    );
+  }
+
   const allLotes = groups.flatMap((g) => g.lotes);
 
   const toggleExpand = (id: string) => setExpanded(expanded === id ? null : id);
