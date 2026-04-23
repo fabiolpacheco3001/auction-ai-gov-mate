@@ -321,7 +321,7 @@ export async function gerarPdf(processoTitulo: string, lotes: LoteComBens[]): Pr
     if (hasImages) {
       autoTable(doc, {
         startY,
-        head: [["Imagem", "Tombamento", "Descrição", "Qtd", "Estado"]],
+        head: [["Imagem", "Código do Bem", "Descrição", "Qtd", "Estado"]],
         body: lote.bens.map((item) => [
           "", // placeholder for image
           item.tombamento || "—",
@@ -350,7 +350,7 @@ export async function gerarPdf(processoTitulo: string, lotes: LoteComBens[]): Pr
     } else {
       autoTable(doc, {
         startY,
-        head: [["Tombamento", "Descrição", "Qtd", "Estado"]],
+        head: [["Código do Bem", "Descrição", "Qtd", "Estado"]],
         body: lote.bens.map((item) => [
           item.tombamento || "—",
           item.descricao || "—",
@@ -496,7 +496,7 @@ export async function downloadXlsx(processoTitulo: string, lotes: LoteComBens[])
       locRow.getCell(1).font = boldFont;
     }
 
-    const headers = hasAnyImage ? ["Imagem", "Tombamento", "Descrição", "Qtd", "Estado"] : ["Tombamento", "Descrição", "Qtd", "Estado"];
+    const headers = hasAnyImage ? ["Imagem", "Código do Bem", "Descrição", "Qtd", "Estado"] : ["Código do Bem", "Descrição", "Qtd", "Estado"];
     const thRow = ws.addRow(headers);
     for (let c = 1; c <= colCount; c++) {
       const cell = thRow.getCell(c);
@@ -648,7 +648,7 @@ export async function downloadDocx(processoTitulo: string, lotes: LoteComBens[])
 
     const hasImages = lote.bens.some((b) => itemImageBuffers[b.id]);
 
-    const headerTexts = hasImages ? ["Imagem", "Tombamento", "Descrição", "Qtd", "Estado"] : ["Tombamento", "Descrição", "Qtd", "Estado"];
+    const headerTexts = hasImages ? ["Imagem", "Código do Bem", "Descrição", "Qtd", "Estado"] : ["Código do Bem", "Descrição", "Qtd", "Estado"];
     const headerCells = headerTexts.map(
       (h) => new TableCell({
         shading: { type: ShadingType.SOLID, color: "2980B9" },
@@ -799,7 +799,7 @@ export function gerarConteudoDocumento(processoTitulo: string, lotes: LoteComBen
     lines.push("");
     lines.push("  ITENS DO LOTE:");
     lines.push("  ┌─────────────────┬────────────────────────────────────────┬─────┬────────────┐");
-    lines.push("  │ Tombamento      │ Descrição                              │ Qtd │ Estado     │");
+    lines.push("  │ Código do Bem   │ Descrição                              │ Qtd │ Estado     │");
     lines.push("  ├─────────────────┼────────────────────────────────────────┼─────┼────────────┤");
 
     for (const item of lote.bens) {
