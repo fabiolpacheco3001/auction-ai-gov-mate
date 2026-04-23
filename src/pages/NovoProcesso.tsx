@@ -25,7 +25,7 @@ const generateTemplateXlsx = async () => {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("Modelo");
   const headers = [
-    "Número de Tombamento",
+    "Código do Bem",
     "Descrição do Bem",
     "Categoria (veiculos/eletronicos/moveis/maquinario/outros)",
     "Estado de Conservação (bom/regular/ruim/inservivel)",
