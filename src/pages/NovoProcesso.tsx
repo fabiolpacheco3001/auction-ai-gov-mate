@@ -212,7 +212,7 @@ const NovoProcesso = () => {
               Arraste os arquivos aqui ou clique para selecionar
             </h3>
             <p className="text-muted-foreground text-sm mb-6">
-              Envie planilhas Excel e, opcionalmente, fotos nomeadas pelo tombamento
+              Envie planilhas Excel e, opcionalmente, fotos nomeadas pelo Código do Bem
             </p>
             <div className="flex items-center justify-center gap-6">
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
