@@ -380,7 +380,7 @@ const NovoProcesso = () => {
             </Link>
           </p>
           <p className="mt-1">
-            <strong>Dica:</strong> Nomeie as fotos com o Número de Tombamento (ex: <code className="bg-muted px-1 rounded text-xs">VEI-2010-001.jpg</code>) para vinculação automática.
+            <strong>Dica:</strong> Nomeie as fotos com o Código do Bem (ex: <code className="bg-muted px-1 rounded text-xs">VEI-2010-001.jpg</code>) para vinculação automática.
           </p>
         </div>
       </div>
