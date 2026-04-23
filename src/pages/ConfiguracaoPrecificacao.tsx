@@ -17,9 +17,9 @@ const PROMPT_PADRAO = `Classifique os bens patrimoniais do CSV seguindo estas re
 1. CATEGORIAS: Classifique cada item em uma das categorias: veículos, eletrônicos, móveis, maquinário ou outros.
 2. VALIDAÇÃO DE VALORES: Verifique se os valores estimados são numéricos e positivos. Sinalize valores zerados ou negativos.
 3. ESTADO DE CONSERVAÇÃO: Valide se o estado informado é um dos valores aceitos: bom, regular, ruim ou inservível.
-4. TOMBAMENTO: Verifique se o número de tombamento segue o padrão esperado (ex: VEI-2010-001).
+4. CÓDIGO DO BEM: Verifique se o código do bem segue o padrão esperado (ex: VEI-2010-001).
 5. INCONSISTÊNCIAS: Identifique registros com campos obrigatórios vazios (descrição, categoria, localização).
-6. DUPLICATAS: Sinalize possíveis itens duplicados com base no número de tombamento.
+6. DUPLICATAS: Sinalize possíveis itens duplicados com base no código do bem.
 7. Gere os lotes agrupados por Municipio e Categoria.`;
 
 interface SiteRow {

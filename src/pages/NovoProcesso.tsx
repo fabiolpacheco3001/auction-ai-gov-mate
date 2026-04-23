@@ -25,7 +25,7 @@ const generateTemplateXlsx = async () => {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("Modelo");
   const headers = [
-    "Número de Tombamento",
+    "Código do Bem",
     "Descrição do Bem",
     "Categoria (veiculos/eletronicos/moveis/maquinario/outros)",
     "Estado de Conservação (bom/regular/ruim/inservivel)",
@@ -212,7 +212,7 @@ const NovoProcesso = () => {
               Arraste os arquivos aqui ou clique para selecionar
             </h3>
             <p className="text-muted-foreground text-sm mb-6">
-              Envie planilhas Excel e, opcionalmente, fotos nomeadas pelo tombamento
+              Envie planilhas Excel e, opcionalmente, fotos nomeadas pelo Código do Bem
             </p>
             <div className="flex items-center justify-center gap-6">
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -380,7 +380,7 @@ const NovoProcesso = () => {
             </Link>
           </p>
           <p className="mt-1">
-            <strong>Dica:</strong> Nomeie as fotos com o Número de Tombamento (ex: <code className="bg-muted px-1 rounded text-xs">VEI-2010-001.jpg</code>) para vinculação automática.
+            <strong>Dica:</strong> Nomeie as fotos com o Código do Bem (ex: <code className="bg-muted px-1 rounded text-xs">VEI-2010-001.jpg</code>) para vinculação automática.
           </p>
         </div>
       </div>

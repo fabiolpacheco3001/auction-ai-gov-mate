@@ -108,7 +108,7 @@ const LoteItemsTable = ({ bens, loteId, isApproved, otherLotes, onMoveItem }: Lo
         <thead>
           <tr className="bg-muted/30">
             <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-2.5 w-12">Foto</th>
-            <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-2.5">Tombamento</th>
+            <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-2.5">Código do Bem</th>
             <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-2.5">Descrição</th>
             <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-2.5">Qtd</th>
             <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-2.5">Estado</th>

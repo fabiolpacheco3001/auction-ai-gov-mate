@@ -5,7 +5,7 @@ export interface ParsedRow {
 }
 
 const HEADER_ALIASES: Record<string, string[]> = {
-  "Número de Tombamento": ["numero de tombamento", "tombamento", "nº tombamento", "n tombamento", "num tombamento"],
+  "Número de Tombamento": ["numero de tombamento", "tombamento", "nº tombamento", "n tombamento", "num tombamento", "codigo do bem", "código do bem", "codigo", "código"],
   "Descrição do Bem": ["descricao do bem", "descrição", "descricao", "bem"],
   "Categoria (veiculos/eletronicos/moveis/maquinario/outros)": ["categoria"],
   "Estado de Conservação (bom/regular/ruim/inservivel)": ["estado de conservacao", "estado de conservação", "estado", "conservacao", "conservação"],
