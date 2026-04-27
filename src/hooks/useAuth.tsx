@@ -60,6 +60,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (!orgUser?.orgao_id) {
         await supabase.auth.signOut();
+        // Give onAuthStateChange a tick to propagate the signed-out state
+        await new Promise((r) => setTimeout(r, 50));
         return { error: blockMessage };
       }
 
@@ -79,6 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (!valid) {
         await supabase.auth.signOut();
+        await new Promise((r) => setTimeout(r, 50));
         return { error: blockMessage };
       }
     }

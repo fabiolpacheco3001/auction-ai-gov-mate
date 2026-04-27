@@ -37,8 +37,13 @@ const Login = () => {
       const { error: firstError } = await signIn(loginEmail, password);
 
       if (firstError) {
-        // If that fails and input wasn't an email, try looking up by login field
-        if (!login.includes("@")) {
+        const isBlockMessage = firstError.startsWith("Login não permitido!");
+
+        // If it's the org-block message, show it directly (don't try fallbacks)
+        if (isBlockMessage) {
+          setError(firstError);
+        } else if (!login.includes("@")) {
+          // If that fails and input wasn't an email, try looking up by login field
           // Use a public RPC or direct query to find the user's email by login
           const { data: userData } = await supabase.functions.invoke("resolve-login", {
             body: { login: login.trim() },
@@ -47,7 +52,11 @@ const Login = () => {
           if (userData?.email) {
             const { error: secondError } = await signIn(userData.email, password);
             if (secondError) {
-              setError("Credenciais inválidas. Verifique seu login e senha.");
+              setError(
+                secondError.startsWith("Login não permitido!")
+                  ? secondError
+                  : "Credenciais inválidas. Verifique seu login e senha."
+              );
             }
           } else {
             setError("Credenciais inválidas. Verifique seu login e senha.");
