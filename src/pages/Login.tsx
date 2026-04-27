@@ -99,7 +99,11 @@ const Login = () => {
             />
           </div>
 
-          {error && <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>}
+          {error && (
+            <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2 whitespace-pre-line">
+              {error}
+            </p>
+          )}
 
           <Button
             type="submit"

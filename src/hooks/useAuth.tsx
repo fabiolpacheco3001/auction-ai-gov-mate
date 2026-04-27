@@ -34,8 +34,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: error.message };
+
+    const userId = data.user?.id;
+    if (!userId) return { error: "Falha na autenticação." };
+
+    // Super admins bypass org validation
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const isSuperAdmin = roles?.some((r: any) => r.role === "super_admin") ?? false;
+
+    if (!isSuperAdmin) {
+      const { data: orgUser } = await supabase
+        .from("orgao_usuarios")
+        .select("orgao_id")
+        .eq("user_id", userId)
+        .eq("ativo", true)
+        .maybeSingle();
+
+      const blockMessage =
+        "Login não permitido!\nO órgão que seu usuário está associado não está ativo no momento. Para reativar o acesso renove sua assinatura junto ao suporte.";
+
+      if (!orgUser?.orgao_id) {
+        await supabase.auth.signOut();
+        return { error: blockMessage };
+      }
+
+      const { data: orgao } = await supabase
+        .from("orgaos")
+        .select("ativo, data_inicio, data_termino")
+        .eq("id", orgUser.orgao_id)
+        .maybeSingle();
+
+      const today = new Date().toISOString().slice(0, 10);
+      const valid =
+        !!orgao &&
+        orgao.ativo === true &&
+        !!orgao.data_inicio &&
+        today >= orgao.data_inicio &&
+        (!orgao.data_termino || today <= orgao.data_termino);
+
+      if (!valid) {
+        await supabase.auth.signOut();
+        return { error: blockMessage };
+      }
+    }
+
+    return { error: null };
   };
 
   const signOut = async () => {

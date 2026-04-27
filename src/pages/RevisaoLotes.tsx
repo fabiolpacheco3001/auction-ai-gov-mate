@@ -170,6 +170,16 @@ const RevisaoLotes = () => {
     setSaving(true);
     try {
       const orgId = selectedOrgId || null;
+
+      // Defense-in-depth: re-check quota right before insert
+      const { checkOrgQuota } = await import("@/lib/orgQuota");
+      const quota = await checkOrgQuota(orgId);
+      if (!quota.allowed) {
+        toast.error(quota.message!);
+        setSaving(false);
+        return;
+      }
+
       const { data: numeroData, error: numeroErr } = await supabase.rpc(
         "get_next_processo_numero",
         { p_orgao_id: orgId }
