@@ -9,6 +9,7 @@ import { ExcelParsingService } from "@/services/ExcelParsingService";
 import { useOrgFilter } from "@/hooks/useOrgFilter";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { checkOrgQuota } from "@/lib/orgQuota";
 import ExcelJS from "exceljs";
 
 const EXCEL_EXTENSIONS = [".xlsx", ".xls"];
@@ -110,6 +111,13 @@ const NovoProcesso = () => {
 
     if (excels.length === 0) {
       toast({ title: "Planilha obrigatória", description: "Envie pelo menos uma planilha Excel.", variant: "destructive" });
+      return;
+    }
+
+    // Quota check before any heavy work / AI calls
+    const quota = await checkOrgQuota(selectedOrgId ?? null);
+    if (!quota.allowed) {
+      toast({ title: "Limite atingido", description: quota.message, variant: "destructive" });
       return;
     }
 

@@ -99,6 +99,39 @@ serve(async (req) => {
       );
     }
 
+    // Quota check: block if org has reached its pacote_processos limit
+    if (tokenRow.orgao_id) {
+      const { data: orgao } = await supabaseAdmin
+        .from("orgaos")
+        .select("pacote_processos, data_inicio, data_termino")
+        .eq("id", tokenRow.orgao_id)
+        .maybeSingle();
+
+      const limite = orgao?.pacote_processos ?? 0;
+      if (orgao && limite > 0 && orgao.data_inicio) {
+        const fim = orgao.data_termino ?? new Date().toISOString().slice(0, 10);
+        const inicioIso = `${orgao.data_inicio}T00:00:00.000Z`;
+        const fimIso = `${fim}T23:59:59.999Z`;
+
+        const { count } = await supabaseAdmin
+          .from("processos")
+          .select("id", { count: "exact", head: true })
+          .eq("orgao_id", tokenRow.orgao_id)
+          .gte("created_at", inicioIso)
+          .lte("created_at", fimIso);
+
+        if ((count ?? 0) >= limite) {
+          return new Response(
+            JSON.stringify({
+              error:
+                "A quantidade de processo atingiu o limite previsto no pacote deste Órgão. Para retomar a geração solicite renovação/aumento do seu pacote de uso junto ao suporte.",
+            }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
+
     // Fetch prompt configuration filtered by org
     let configQuery = supabaseAdmin
       .from("configuracao_sistema")
