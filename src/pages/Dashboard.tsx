@@ -24,7 +24,35 @@ const Dashboard = () => {
       const totalBens = rows.reduce((s, p) => s + (p.total_bens ?? 0), 0);
       const totalLotes = rows.reduce((s, p) => s + (p.total_lotes ?? 0), 0);
       const arrecadacaoEstimada = rows.reduce((s, p) => s + Number(p.arrecadacao_estimada ?? 0), 0);
-      const arrecadacaoRealizada = rows.reduce((s, p) => s + Number(p.arrecadacao_real ?? 0), 0);
+
+      // Arrecadação Realizada: soma de valor_efetivado * quantidade dos bens
+      // pertencentes a processos com status "finalizado", excluindo lotes "não vendidos"
+      const finalizadosIds = rows.filter((p) => p.status === "finalizado").map((p) => p.id);
+      let arrecadacaoRealizada = 0;
+      if (finalizadosIds.length > 0) {
+        const { data: lotesFin } = await supabase
+          .from("lotes")
+          .select("id, processo_id, nao_vendido")
+          .in("processo_id", finalizadosIds);
+        const validLoteIds = (lotesFin ?? []).filter((l) => !l.nao_vendido).map((l) => l.id);
+        if (validLoteIds.length > 0) {
+          const { data: lb } = await supabase
+            .from("lotes_bens")
+            .select("bem_id")
+            .in("lote_id", validLoteIds);
+          const bemIds = [...new Set((lb ?? []).map((x) => x.bem_id))];
+          if (bemIds.length > 0) {
+            const { data: bensRows } = await supabase
+              .from("bens")
+              .select("valor_efetivado, quantidade")
+              .in("id", bemIds);
+            for (const b of bensRows ?? []) {
+              const v = (b as any).valor_efetivado != null ? Number((b as any).valor_efetivado) : 0;
+              arrecadacaoRealizada += v * Number(b.quantidade ?? 1);
+            }
+          }
+        }
+      }
       const processosAtivos = rows.filter((p) => !["finalizado"].includes(p.status)).length;
       return { totalBens, totalLotes, arrecadacaoEstimada, arrecadacaoRealizada, processosAtivos };
     },

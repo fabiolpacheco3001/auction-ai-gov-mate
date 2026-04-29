@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Upload,
   PackageSearch,
+  Trophy,
   FileText,
   BarChart3,
   Settings,
@@ -23,6 +24,7 @@ const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/novo-processo", label: "Novo Processo", icon: Upload },
   { to: "/lotes", label: "Lotes Gerados", icon: PackageSearch },
+  { to: "/resultado-lotes", label: "Resultado dos Lotes", icon: Trophy },
   { to: "/documentos", label: "Documentos", icon: FileText },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
 ];

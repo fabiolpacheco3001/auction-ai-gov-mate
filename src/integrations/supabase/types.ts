@@ -68,6 +68,7 @@ export type Database = {
           processo_id: string | null
           quantidade: number
           tombamento: string
+          valor_efetivado: number | null
           valor_estimado: number
           valor_medio_site1: number | null
           valor_medio_site2: number | null
@@ -86,6 +87,7 @@ export type Database = {
           processo_id?: string | null
           quantidade?: number
           tombamento?: string
+          valor_efetivado?: number | null
           valor_estimado?: number
           valor_medio_site1?: number | null
           valor_medio_site2?: number | null
@@ -104,6 +106,7 @@ export type Database = {
           processo_id?: string | null
           quantidade?: number
           tombamento?: string
+          valor_efetivado?: number | null
           valor_estimado?: number
           valor_medio_site1?: number | null
           valor_medio_site2?: number | null
@@ -211,6 +214,7 @@ export type Database = {
           categoria: string
           created_at: string
           id: string
+          nao_vendido: boolean
           numero: number
           preco_aprovado: number | null
           preco_sugerido: number
@@ -222,6 +226,7 @@ export type Database = {
           categoria: string
           created_at?: string
           id?: string
+          nao_vendido?: boolean
           numero: number
           preco_aprovado?: number | null
           preco_sugerido?: number
@@ -233,6 +238,7 @@ export type Database = {
           categoria?: string
           created_at?: string
           id?: string
+          nao_vendido?: boolean
           numero?: number
           preco_aprovado?: number | null
           preco_sugerido?: number
@@ -375,6 +381,9 @@ export type Database = {
           arrecadacao_real: number | null
           created_at: string
           data_upload: string
+          documento_comprobatorio_nome: string | null
+          documento_comprobatorio_url: string | null
+          finalizado_em: string | null
           id: string
           numero: number | null
           orgao_id: string | null
@@ -390,6 +399,9 @@ export type Database = {
           arrecadacao_real?: number | null
           created_at?: string
           data_upload?: string
+          documento_comprobatorio_nome?: string | null
+          documento_comprobatorio_url?: string | null
+          finalizado_em?: string | null
           id?: string
           numero?: number | null
           orgao_id?: string | null
@@ -405,6 +417,9 @@ export type Database = {
           arrecadacao_real?: number | null
           created_at?: string
           data_upload?: string
+          documento_comprobatorio_nome?: string | null
+          documento_comprobatorio_url?: string | null
+          finalizado_em?: string | null
           id?: string
           numero?: number | null
           orgao_id?: string | null

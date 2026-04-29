@@ -14,9 +14,20 @@ import {
   FolderOpen,
   Camera,
   Loader2,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -79,6 +90,7 @@ interface Processo {
   numero?: number;
   sigla_orgao?: string;
   created_at?: string;
+  status?: string;
 }
 
 interface ProcessoGroup {
@@ -95,6 +107,7 @@ const LotesGerados = () => {
   const [editValue, setEditValue] = useState("");
   const [openProcessos, setOpenProcessos] = useState<Set<string>>(new Set());
   const [selectedProcessos, setSelectedProcessos] = useState<Set<string>>(new Set());
+  const [cancelTarget, setCancelTarget] = useState<{ id: string; titulo: string } | null>(null);
 
   const { data: groups = [], isLoading } = useQuery<ProcessoGroup[]>({
     queryKey: ["lotes-by-processo", selectedOrgId],
@@ -117,9 +130,9 @@ const LotesGerados = () => {
       // Fetch processos
       let processosMap: Record<string, Processo> = {};
       if (fetchedProcessoIds.length > 0) {
-        const { data: processosData } = await supabase.from("processos").select("id, titulo, numero, created_at, orgaos:orgao_id(sigla)").in("id", fetchedProcessoIds);
+        const { data: processosData } = await supabase.from("processos").select("id, titulo, numero, status, created_at, orgaos:orgao_id(sigla)").in("id", fetchedProcessoIds);
         for (const p of processosData ?? []) {
-          processosMap[p.id] = { id: p.id, titulo: p.titulo, numero: (p as any).numero ?? undefined, created_at: p.created_at, sigla_orgao: (p as any).orgaos?.sigla ?? "" };
+          processosMap[p.id] = { id: p.id, titulo: p.titulo, numero: (p as any).numero ?? undefined, status: (p as any).status, created_at: p.created_at, sigla_orgao: (p as any).orgaos?.sigla ?? "" };
         }
       }
 
@@ -228,6 +241,11 @@ const LotesGerados = () => {
     const allApproved = lotesProcesso && lotesProcesso.length > 0 && lotesProcesso.every((l) => l.status === "aprovado");
     if (!allApproved) return;
 
+    // Atualiza status do processo pai para "aprovado"
+    await supabase.from("processos").update({ status: "aprovado" }).eq("id", processoId);
+    queryClient.invalidateQueries({ queryKey: ["processos"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+
     const group = groups.find((g) => g.processo.id === processoId);
     if (!group) return;
 
@@ -326,6 +344,16 @@ const LotesGerados = () => {
       console.error("Erro ao mover item:", err);
       toast.error("Erro ao mover item entre lotes.");
     }
+  };
+
+  const cancelarProcesso = async () => {
+    if (!cancelTarget) return;
+    await supabase.from("processos").update({ status: "cancelado" }).eq("id", cancelTarget.id);
+    queryClient.invalidateQueries({ queryKey: ["lotes-by-processo"] });
+    queryClient.invalidateQueries({ queryKey: ["processos"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+    toast.success(`Processo "${cancelTarget.titulo}" cancelado.`);
+    setCancelTarget(null);
   };
 
   const totalEstimado = allLotes.reduce((sum, l) => sum + l.preco_sugerido, 0);
@@ -437,6 +465,21 @@ const LotesGerados = () => {
                         <CheckCircle2 className="w-3 h-3" /> Aprovar Todos
                       </Button>
                     )}
+                    {group.processo.id !== "__sem_processo__" &&
+                      group.processo.status !== "finalizado" &&
+                      group.processo.status !== "cancelado" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-xs h-7 text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCancelTarget({ id: group.processo.id, titulo: group.processo.titulo });
+                          }}
+                        >
+                          <XCircle className="w-3 h-3" /> Cancelar
+                        </Button>
+                      )}
                   </div>
                   {isOpen ? <ChevronUp className="w-5 h-5 text-muted-foreground shrink-0" /> : <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />}
                 </div>
@@ -541,6 +584,27 @@ const LotesGerados = () => {
           );
         })}
       </div>
+
+      <AlertDialog open={!!cancelTarget} onOpenChange={(open) => !open && setCancelTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar Processo</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja cancelar o processo "{cancelTarget?.titulo}"? Esta ação alterará
+              o status do processo para "Cancelado".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={cancelarProcesso}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Confirmar Cancelamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
