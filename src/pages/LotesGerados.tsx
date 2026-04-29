@@ -241,6 +241,11 @@ const LotesGerados = () => {
     const allApproved = lotesProcesso && lotesProcesso.length > 0 && lotesProcesso.every((l) => l.status === "aprovado");
     if (!allApproved) return;
 
+    // Atualiza status do processo pai para "aprovado"
+    await supabase.from("processos").update({ status: "aprovado" }).eq("id", processoId);
+    queryClient.invalidateQueries({ queryKey: ["processos"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+
     const group = groups.find((g) => g.processo.id === processoId);
     if (!group) return;
 
