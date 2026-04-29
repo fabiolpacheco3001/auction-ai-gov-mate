@@ -14,9 +14,20 @@ import {
   FolderOpen,
   Camera,
   Loader2,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -79,6 +90,7 @@ interface Processo {
   numero?: number;
   sigla_orgao?: string;
   created_at?: string;
+  status?: string;
 }
 
 interface ProcessoGroup {
@@ -95,6 +107,7 @@ const LotesGerados = () => {
   const [editValue, setEditValue] = useState("");
   const [openProcessos, setOpenProcessos] = useState<Set<string>>(new Set());
   const [selectedProcessos, setSelectedProcessos] = useState<Set<string>>(new Set());
+  const [cancelTarget, setCancelTarget] = useState<{ id: string; titulo: string } | null>(null);
 
   const { data: groups = [], isLoading } = useQuery<ProcessoGroup[]>({
     queryKey: ["lotes-by-processo", selectedOrgId],
@@ -117,9 +130,9 @@ const LotesGerados = () => {
       // Fetch processos
       let processosMap: Record<string, Processo> = {};
       if (fetchedProcessoIds.length > 0) {
-        const { data: processosData } = await supabase.from("processos").select("id, titulo, numero, created_at, orgaos:orgao_id(sigla)").in("id", fetchedProcessoIds);
+        const { data: processosData } = await supabase.from("processos").select("id, titulo, numero, status, created_at, orgaos:orgao_id(sigla)").in("id", fetchedProcessoIds);
         for (const p of processosData ?? []) {
-          processosMap[p.id] = { id: p.id, titulo: p.titulo, numero: (p as any).numero ?? undefined, created_at: p.created_at, sigla_orgao: (p as any).orgaos?.sigla ?? "" };
+          processosMap[p.id] = { id: p.id, titulo: p.titulo, numero: (p as any).numero ?? undefined, status: (p as any).status, created_at: p.created_at, sigla_orgao: (p as any).orgaos?.sigla ?? "" };
         }
       }
 
