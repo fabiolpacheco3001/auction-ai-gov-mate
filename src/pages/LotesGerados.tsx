@@ -465,6 +465,21 @@ const LotesGerados = () => {
                         <CheckCircle2 className="w-3 h-3" /> Aprovar Todos
                       </Button>
                     )}
+                    {group.processo.id !== "__sem_processo__" &&
+                      group.processo.status !== "finalizado" &&
+                      group.processo.status !== "cancelado" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-xs h-7 text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCancelTarget({ id: group.processo.id, titulo: group.processo.titulo });
+                          }}
+                        >
+                          <XCircle className="w-3 h-3" /> Cancelar
+                        </Button>
+                      )}
                   </div>
                   {isOpen ? <ChevronUp className="w-5 h-5 text-muted-foreground shrink-0" /> : <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />}
                 </div>
