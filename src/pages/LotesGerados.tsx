@@ -346,6 +346,16 @@ const LotesGerados = () => {
     }
   };
 
+  const cancelarProcesso = async () => {
+    if (!cancelTarget) return;
+    await supabase.from("processos").update({ status: "cancelado" }).eq("id", cancelTarget.id);
+    queryClient.invalidateQueries({ queryKey: ["lotes-by-processo"] });
+    queryClient.invalidateQueries({ queryKey: ["processos"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+    toast.success(`Processo "${cancelTarget.titulo}" cancelado.`);
+    setCancelTarget(null);
+  };
+
   const totalEstimado = allLotes.reduce((sum, l) => sum + l.preco_sugerido, 0);
   const currency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
