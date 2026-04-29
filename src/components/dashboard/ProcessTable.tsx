@@ -11,6 +11,7 @@ const statusLabels: Record<string, string> = {
   aprovado: "Aprovado",
   em_leilao: "Em Leilão",
   finalizado: "Finalizado",
+  cancelado: "Cancelado",
 };
 
 const statusColors: Record<string, string> = {
@@ -19,6 +20,7 @@ const statusColors: Record<string, string> = {
   aprovado: "bg-success/10 text-success",
   em_leilao: "bg-accent/10 text-accent",
   finalizado: "bg-muted text-muted-foreground",
+  cancelado: "bg-destructive/10 text-destructive",
 };
 
 const ProcessTable = () => {
@@ -60,7 +62,11 @@ const ProcessTable = () => {
             {(processos ?? []).map((p) => (
               <tr key={p.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                 <td className="px-5 py-3.5">
-                  <p className="text-sm font-medium text-foreground">{p.titulo}</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {p.numero && p.created_at
+                      ? `${String(p.numero).padStart(3, "0")}/${new Date(p.created_at).getFullYear()} - ${p.titulo}`
+                      : p.titulo}
+                  </p>
                   <p className="text-xs text-muted-foreground">{new Date(p.data_upload).toLocaleDateString("pt-BR")}</p>
                 </td>
                 <td className="px-5 py-3.5 text-sm text-muted-foreground">{(p as any).orgaos?.sigla ?? "—"}</td>
