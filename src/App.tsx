@@ -11,6 +11,7 @@ import Dashboard from "@/pages/Dashboard";
 import NovoProcesso from "@/pages/NovoProcesso";
 import LotesGerados from "@/pages/LotesGerados";
 import RevisaoLotes from "@/pages/RevisaoLotes";
+import ResultadoLotes from "@/pages/ResultadoLotes";
 import Documentos from "@/pages/Documentos";
 import Relatorios from "@/pages/Relatorios";
 import LoteImagens from "@/pages/LoteImagens";
@@ -94,6 +95,7 @@ const ProtectedRoutes = () => {
           <Route path="/novo-processo" element={<NovoProcesso />} />
           <Route path="/lotes" element={<LotesGerados />} />
           <Route path="/revisao-lotes" element={<RevisaoLotes />} />
+          <Route path="/resultado-lotes" element={<ResultadoLotes />} />
           <Route path="/documentos" element={<Documentos />} />
           <Route path="/relatorios" element={<Relatorios />} />
           <Route path="/lote-imagens/:loteId" element={<LoteImagens />} />
