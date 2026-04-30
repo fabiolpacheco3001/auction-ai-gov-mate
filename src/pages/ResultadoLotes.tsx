@@ -13,6 +13,7 @@ import {
   Flag,
   Upload,
   CheckCircle2,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -68,6 +69,9 @@ interface Processo {
   sigla_orgao?: string;
   created_at?: string;
   status: string;
+  documento_comprobatorio_url?: string | null;
+  documento_comprobatorio_nome?: string | null;
+  finalizado_em?: string | null;
 }
 
 interface ProcessoGroup {
@@ -91,8 +95,8 @@ const ResultadoLotes = () => {
     queryFn: async () => {
       let processosQuery = supabase
         .from("processos")
-        .select("id, titulo, numero, status, created_at, orgaos:orgao_id(sigla)")
-        .eq("status", "aprovado");
+        .select("id, titulo, numero, status, created_at, documento_comprobatorio_url, documento_comprobatorio_nome, finalizado_em, orgaos:orgao_id(sigla)")
+        .in("status", ["aprovado", "finalizado"]);
       if (selectedOrgId) processosQuery = processosQuery.eq("orgao_id", selectedOrgId);
       const { data: processosData } = await processosQuery;
       if (!processosData || processosData.length === 0) return [];
@@ -107,6 +111,9 @@ const ResultadoLotes = () => {
           created_at: p.created_at,
           sigla_orgao: (p as any).orgaos?.sigla ?? "",
           status: p.status,
+          documento_comprobatorio_url: (p as any).documento_comprobatorio_url ?? null,
+          documento_comprobatorio_nome: (p as any).documento_comprobatorio_nome ?? null,
+          finalizado_em: (p as any).finalizado_em ?? null,
         };
       }
 
