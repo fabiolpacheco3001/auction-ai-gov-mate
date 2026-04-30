@@ -13,6 +13,7 @@ import {
   Flag,
   Upload,
   CheckCircle2,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -68,6 +69,9 @@ interface Processo {
   sigla_orgao?: string;
   created_at?: string;
   status: string;
+  documento_comprobatorio_url?: string | null;
+  documento_comprobatorio_nome?: string | null;
+  finalizado_em?: string | null;
 }
 
 interface ProcessoGroup {
@@ -91,8 +95,8 @@ const ResultadoLotes = () => {
     queryFn: async () => {
       let processosQuery = supabase
         .from("processos")
-        .select("id, titulo, numero, status, created_at, orgaos:orgao_id(sigla)")
-        .eq("status", "aprovado");
+        .select("id, titulo, numero, status, created_at, documento_comprobatorio_url, documento_comprobatorio_nome, finalizado_em, orgaos:orgao_id(sigla)")
+        .in("status", ["aprovado", "finalizado"]);
       if (selectedOrgId) processosQuery = processosQuery.eq("orgao_id", selectedOrgId);
       const { data: processosData } = await processosQuery;
       if (!processosData || processosData.length === 0) return [];
@@ -107,6 +111,9 @@ const ResultadoLotes = () => {
           created_at: p.created_at,
           sigla_orgao: (p as any).orgaos?.sigla ?? "",
           status: p.status,
+          documento_comprobatorio_url: (p as any).documento_comprobatorio_url ?? null,
+          documento_comprobatorio_nome: (p as any).documento_comprobatorio_nome ?? null,
+          finalizado_em: (p as any).finalizado_em ?? null,
         };
       }
 
@@ -308,6 +315,7 @@ const ResultadoLotes = () => {
       <div className="space-y-6">
         {groups.map((group) => {
           const isOpen = openProcessos.has(group.processo.id);
+          const isFinalized = group.processo.status === "finalizado";
           const groupTotal = group.lotes.reduce((s, l) => {
             if (l.nao_vendido) return s;
             return (
@@ -345,12 +353,31 @@ const ResultadoLotes = () => {
                       {group.lotes.length} {group.lotes.length === 1 ? "lote" : "lotes"}
                     </span>
                     <span className="font-medium text-foreground">{currency(groupTotal)}</span>
+                    {isFinalized ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-success/10 text-success">
+                        Finalizado
+                      </span>
+                    ) : null}
+                    {isFinalized && group.processo.documento_comprobatorio_url ? (
+                      <a
+                        href={group.processo.documento_comprobatorio_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        title={group.processo.documento_comprobatorio_nome ?? "Documento comprobatório"}
+                      >
+                        <Button size="sm" variant="outline" className="gap-1 text-xs h-7">
+                          <Download className="w-3 h-3" /> Comprobatório
+                        </Button>
+                      </a>
+                    ) : null}
                     <Button
                       size="sm"
-                      className="gap-1 text-xs h-7 bg-success text-success-foreground hover:bg-success/90"
+                      disabled={isFinalized}
+                      className="gap-1 text-xs h-7 bg-success text-success-foreground hover:bg-success/90 disabled:opacity-50"
                       onClick={(e) => {
                         e.stopPropagation();
-                        openFinalizar(group.processo);
+                        if (!isFinalized) openFinalizar(group.processo);
                       }}
                     >
                       <Flag className="w-3 h-3" /> Finalizar Processo
@@ -404,6 +431,7 @@ const ResultadoLotes = () => {
                             <Switch
                               id={`nv-${lote.id}`}
                               checked={lote.nao_vendido}
+                              disabled={isFinalized}
                               onCheckedChange={(v) => toggleNaoVendido(lote.id, v)}
                             />
                           </div>
@@ -417,7 +445,7 @@ const ResultadoLotes = () => {
                         {isExpanded && (
                           <ResultadoItemsTable
                             bens={lote.bens}
-                            disabled={lote.nao_vendido}
+                            disabled={lote.nao_vendido || isFinalized}
                             onUpdate={updateValorEfetivado}
                           />
                         )}
