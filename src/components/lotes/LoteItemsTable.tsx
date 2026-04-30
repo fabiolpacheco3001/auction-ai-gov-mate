@@ -167,7 +167,7 @@ const LoteItemsTable = ({ bens, loteId, isApproved, otherLotes, onMoveItem }: Lo
                 <td className="px-4 py-2.5 text-sm text-right text-foreground">{formatVal(item.valor_medio_site2)}</td>
                 <td className="px-4 py-2.5 text-sm text-right text-foreground">{formatVal(item.valor_medio_site3)}</td>
                 <td className="px-4 py-2.5 text-sm text-right font-semibold text-accent">
-                  {isEditing ? (
+                  {isEditing && !isApproved ? (
                     <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                       <span className="text-xs text-muted-foreground">R$</span>
                       <input
@@ -180,6 +180,8 @@ const LoteItemsTable = ({ bens, loteId, isApproved, otherLotes, onMoveItem }: Lo
                         autoFocus
                       />
                     </div>
+                  ) : isApproved ? (
+                    <span>{currency(computedSugerido)}</span>
                   ) : (
                     <span
                       className="cursor-pointer hover:underline"
