@@ -348,7 +348,20 @@ const LotesGerados = () => {
 
   const cancelarProcesso = async () => {
     if (!cancelTarget) return;
-    await supabase.from("processos").update({ status: "cancelado" }).eq("id", cancelTarget.id);
+    const { data, error } = await supabase
+      .from("processos")
+      .update({ status: "cancelado" })
+      .eq("id", cancelTarget.id)
+      .select("id");
+    if (error) {
+      console.error("Erro ao cancelar processo:", error);
+      toast.error(`Erro ao cancelar processo: ${error.message}`);
+      return;
+    }
+    if (!data || data.length === 0) {
+      toast.error("Não foi possível cancelar o processo. Verifique suas permissões.");
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["lotes-by-processo"] });
     queryClient.invalidateQueries({ queryKey: ["processos"] });
     queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
