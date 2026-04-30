@@ -417,6 +417,9 @@ const LotesGerados = () => {
           const groupTotal = group.lotes.reduce((s, l) => s + l.preco_sugerido, 0);
           const groupApproved = group.lotes.filter((l) => l.status === "aprovado").length;
           const allLotesApproved = groupApproved === group.lotes.length;
+          const isFinalized = group.processo.status === "finalizado";
+          const isCanceled = group.processo.status === "cancelado";
+          const isLocked = isFinalized || isCanceled;
 
           return (
             <Collapsible key={group.processo.id} open={isOpen} onOpenChange={() => toggleProcesso(group.processo.id)}>
@@ -424,7 +427,7 @@ const LotesGerados = () => {
               <div className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border shadow-card cursor-pointer hover:bg-muted/30 transition-colors">
                   <Checkbox
                     checked={selectedProcessos.has(group.processo.id)}
-                    disabled={allLotesApproved}
+                    disabled={allLotesApproved || isLocked}
                     onCheckedChange={(checked) => {
                       setSelectedProcessos((prev) => {
                         const next = new Set(prev);
@@ -465,10 +468,16 @@ const LotesGerados = () => {
                       </span>
                     </div>
                     <span className="font-medium text-foreground">{currency(groupTotal)}</span>
-                    <span className={cn("text-xs px-2 py-0.5 rounded-full", groupApproved === group.lotes.length ? "bg-success/10 text-success" : "bg-warning/10 text-warning")}>
-                      {groupApproved}/{group.lotes.length} aprovados
-                    </span>
-                    {groupApproved < group.lotes.length && (
+                    {isFinalized ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-success/10 text-success">Finalizado</span>
+                    ) : isCanceled ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/10 text-destructive">Cancelado</span>
+                    ) : (
+                      <span className={cn("text-xs px-2 py-0.5 rounded-full", groupApproved === group.lotes.length ? "bg-success/10 text-success" : "bg-warning/10 text-warning")}>
+                        {groupApproved}/{group.lotes.length} aprovados
+                      </span>
+                    )}
+                    {!isLocked && groupApproved < group.lotes.length && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -478,21 +487,20 @@ const LotesGerados = () => {
                         <CheckCircle2 className="w-3 h-3" /> Aprovar Todos
                       </Button>
                     )}
-                    {group.processo.id !== "__sem_processo__" &&
-                      group.processo.status !== "finalizado" &&
-                      group.processo.status !== "cancelado" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1 text-xs h-7 text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setCancelTarget({ id: group.processo.id, titulo: group.processo.titulo });
-                          }}
-                        >
-                          <XCircle className="w-3 h-3" /> Cancelar
-                        </Button>
-                      )}
+                    {group.processo.id !== "__sem_processo__" && !isLocked && (
+                      <button
+                        type="button"
+                        title="Cancelar processo"
+                        aria-label="Cancelar processo"
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCancelTarget({ id: group.processo.id, titulo: group.processo.titulo });
+                        }}
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                   {isOpen ? <ChevronUp className="w-5 h-5 text-muted-foreground shrink-0" /> : <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />}
                 </div>
@@ -503,6 +511,7 @@ const LotesGerados = () => {
                     const isExpanded = expanded === lote.id;
                     const Icon = categoryIcons[lote.categoria] || Package;
                     const isApproved = lote.status === "aprovado";
+                    const actionsDisabled = isLocked;
 
                     return (
                       <div key={lote.id} className={cn("bg-card rounded-xl border shadow-card transition-all duration-200", isApproved ? "border-success/30" : "border-border")}>
@@ -541,7 +550,7 @@ const LotesGerados = () => {
                           })()}
                           <div className="text-right mr-4">
                              <p className="text-xs text-muted-foreground">Preço sugerido (IA)</p>
-                            {editingPrice === lote.id ? (
+                            {editingPrice === lote.id && !actionsDisabled ? (
                               <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                                 <span className="text-sm text-muted-foreground">R$</span>
                                 <input type="number" value={editValue} onChange={(e) => setEditValue(e.target.value)}
@@ -555,7 +564,7 @@ const LotesGerados = () => {
                             )}
                           </div>
                           <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                            {!isApproved && (
+                            {!isApproved && !actionsDisabled && (
                               <>
                                 <button onClick={() => startEditPrice(lote)} className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Editar preço">
                                   <Edit3 className="w-4 h-4" />
@@ -573,16 +582,16 @@ const LotesGerados = () => {
                           <LoteItemsTable
                             bens={lote.bens}
                             loteId={lote.id}
-                            isApproved={isApproved}
+                            isApproved={isApproved || actionsDisabled}
                             otherLotes={
-                              isApproved
+                              isApproved || actionsDisabled
                                 ? undefined
                                 : group.lotes
                                     .filter((ol) => ol.id !== lote.id && ol.status !== "aprovado")
                                     .map((ol) => ({ id: ol.id, numero: ol.numero, categoria: ol.categoria }))
                             }
                             onMoveItem={
-                              isApproved
+                              isApproved || actionsDisabled
                                 ? undefined
                                 : (bemId, targetLoteId) => handleMoveItem(bemId, lote.id, targetLoteId)
                             }
